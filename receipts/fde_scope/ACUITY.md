@@ -8,7 +8,7 @@ Inbound SMS leads needed qualification and CRM routing without dropping Spanish-
 
 ## Constraints discovered
 
-Bilingual EN/ES, sub-500ms response target on the production narrative, GoHighLevel as the system of record, broker-defined qualification rubric.
+Bilingual EN/ES, response-time target documented as a target rather than a measured result, GoHighLevel as the system of record, broker-defined qualification rubric.
 
 ## First thin slice
 
@@ -28,4 +28,4 @@ If GHL writes failed or Spanish paths fell through, pause new bot types and fix 
 
 ## Result and handoff
 
-Jan-Mar 2026 production run. 500+ inbound leads processed. 1,700+ tests at handoff. Audit of 226 existing GHL workflows. Zero production regressions (historical handoff claim).
+January to March 2026 production run. Client-reported 500+ inbound leads processed. 1,700+ tests at handoff. Audit of 226 existing GHL workflows.
