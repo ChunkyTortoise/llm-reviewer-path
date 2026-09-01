@@ -1,5 +1,8 @@
 # llm-reviewer-path
 
+[![ci](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Cloneable 10-minute hiring-manager index. Not a product. Not a RAG app.
 
 ```bash
