@@ -40,7 +40,11 @@ class ActionLoop:
             )
             return {"status": "denied_without_approval"}
         expected = self._approvals.get(preview_id)
-        if expected is None or approval != expected:
+        if (
+            expected is None
+            or not isinstance(approval, str)
+            or not secrets.compare_digest(approval, expected)
+        ):
             raise ApprovalError("untrusted approval")
         if preview_id in self._executed:
             self.audit.append(
