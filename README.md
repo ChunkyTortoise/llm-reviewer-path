@@ -8,11 +8,78 @@ Cloneable 10-minute hiring-manager index. Not a product. Not a RAG app.
 ```bash
 git clone https://github.com/ChunkyTortoise/llm-reviewer-path
 cd llm-reviewer-path
-uv sync --group dev
 uv run pytest
 ```
 
-No API key. No network.
+No API key. No network. 14 offline unit tests verify evaluation gating, approval-token hard action isolation, and retrieval failure modes in ~0.01s.
+
+<details>
+<summary><b>View expected terminal output (14 passed in 0.01s)</b></summary>
+
+```text
+============================= test session starts ==============================
+platform darwin -- Python 3.13.11, pytest-9.1.1, pluggy-1.6.0
+collected 14 items
+
+tests/test_eval_gate.py ...                                              [ 21%]
+tests/test_hard_action.py .....                                          [ 57%]
+tests/test_missing_fixture_fails_closed.py .                             [ 64%]
+tests/test_retrieval_failure_modes.py .....                              [100%]
+
+============================== 14 passed in 0.01s ==============================
+```
+
+</details>
+
+## Architecture & Approval Boundaries
+
+### 1. Hard Action Approval Token Flow
+Demonstrates runtime isolation of dangerous side effects (CRM updates, external calls) behind a cryptographic approval-token gate with duplicate suppression:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Agent as AI Agent
+    participant Action as Hard Action Boundary
+    participant Token as Approval Token Gate
+    participant API as External CRM / State
+
+    Agent->>Action: search_contact(lead_id)
+    Action-->>Agent: contact_info (read-only)
+    Agent->>Action: propose_update(status="qualified")
+    Action->>Token: verify_token()
+    Token-->>Action: Token Missing
+    Action-->>Agent: ActionBlocked(requires_approval_token)
+    
+    Note over Agent,Token: Human or System signs approval
+    Agent->>Token: sign_approval(request_id)
+    Token-->>Agent: valid_approval_token
+
+    Agent->>Action: execute_update(payload, approval_token)
+    Action->>Token: verify_token()
+    Token-->>Action: Valid
+    Action->>API: execute_once()
+    API-->>Action: 200 OK
+    Action-->>Agent: Success(state="updated")
+
+    Note over Agent,Action: Idempotency & Retry Suppression
+    Agent->>Action: execute_update(payload, approval_token) [Duplicate Retry]
+    Action-->>Agent: DuplicateExecutionSuppressed
+```
+
+### 2. Evaluation Gate as CI Merge Block
+Demonstrates how offline fixture replays act as strict deployment and merge gates:
+
+```mermaid
+flowchart LR
+    subgraph Gate["Evaluation Release Gate"]
+        Cand["Candidate Model / Prompt"] --> Replay["28-Fixture Replay Run"]
+        Replay --> Eval["Metric Calculation"]
+        Eval --> Floor{"Score >= 0.85 Floor?"}
+        Floor -->|Pass| Merge["Merge Allowed (CI Green)"]
+        Floor -->|Fail / Mutation| Block["Merge Blocked (Release Prevented)"]
+    end
+```
 
 ## Provenance
 
