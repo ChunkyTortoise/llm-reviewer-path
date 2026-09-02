@@ -73,9 +73,9 @@ Demonstrates how offline fixture replays act as strict deployment and merge gate
 ```mermaid
 flowchart LR
     subgraph Gate["Evaluation Release Gate"]
-        Cand["Candidate Model / Prompt"] --> Replay["28-Fixture Replay Run"]
+        Cand["Candidate Model / Prompt"] --> Replay["5-Case Replay (local fixtures)"]
         Replay --> Eval["Metric Calculation"]
-        Eval --> Floor{"Score >= 0.85 Floor?"}
+        Eval --> Floor{"Score >= 1.00 Floor?"}
         Floor -->|Pass| Merge["Merge Allowed (CI Green)"]
         Floor -->|Fail / Mutation| Block["Merge Blocked (Release Prevented)"]
     end
