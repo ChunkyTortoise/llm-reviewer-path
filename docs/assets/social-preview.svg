@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" role="img" aria-labelledby="social-title social-desc">
+  <title id="social-title">llm-reviewer-path social preview</title>
+  <desc id="social-desc">Social preview for a 10-minute offline reviewer index, featuring an evaluation receipt where a good candidate passes and a mutation fails.</desc>
+  <style>
+    :root { --bg:#F4F1E8; --surface:#FFFCF4; --ink:#142029; --muted:#4B5B63; --line:#C8D0CF; --blue:#0B5CAD; --blue-soft:#DCEBFA; --pass:#136C4A; --pass-soft:#DDEFE6; --fail:#9A2B2B; --fail-soft:#F6DEDE; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#0D151B; --surface:#15222B; --ink:#F5F1E8; --muted:#BAC6CA; --line:#3D4D56; --blue:#76B7FF; --blue-soft:#173A56; --pass:#7AD7AC; --pass-soft:#173B2F; --fail:#FF9292; --fail-soft:#4B2528; } }
+    text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; fill:var(--ink); }
+    .label { font-size:22px; font-weight:750; letter-spacing:2.6px; }
+    .title { font-size:66px; font-weight:780; letter-spacing:-1.8px; }
+    .body { font-size:28px; fill:var(--muted); }
+    .chip { font-size:19px; font-weight:750; letter-spacing:1px; }
+    .mono { font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace; }
+  </style>
+  <rect width="1280" height="640" fill="var(--bg)"/>
+  <rect x="48" y="48" width="1184" height="544" rx="32" fill="none" stroke="var(--line)" stroke-width="2"/>
+  <text x="92" y="112" class="label" fill="var(--blue)">LLM-REVIEWER-PATH</text>
+  <text x="92" y="202" class="title">Trust is a receipt,</text>
+  <text x="92" y="278" class="title">not a promise.</text>
+  <text x="92" y="334" class="body">A 10-minute index for dependable agent systems.</text>
+  <text x="92" y="383" class="body">Evaluation gates · hard-action approval</text>
+  <text x="92" y="425" class="body">Retrieval failure modes</text>
+  <g transform="translate(712 104)">
+    <rect width="440" height="356" rx="24" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/>
+    <text x="30" y="48" class="label">EVAL-GATE RECEIPT</text>
+    <text x="410" y="48" text-anchor="end" class="chip mono" fill="var(--muted)">14 TESTS</text>
+    <line x1="30" y1="68" x2="410" y2="68" stroke="var(--line)" stroke-width="2"/>
+    <rect x="30" y="94" width="380" height="84" rx="14" fill="var(--pass-soft)"/>
+    <circle cx="62" cy="136" r="14" fill="var(--pass)"/>
+    <path d="M55 136l5 5 10-12" fill="none" stroke="var(--surface)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="144" font-size="23" font-weight="720">GOOD CANDIDATE</text>
+    <text x="386" y="144" text-anchor="end" class="chip" fill="var(--pass)">PASS</text>
+    <rect x="30" y="196" width="380" height="84" rx="14" fill="var(--fail-soft)"/>
+    <circle cx="62" cy="238" r="14" fill="var(--fail)"/>
+    <path d="M55 231l14 14m0-14l-14 14" fill="none" stroke="var(--surface)" stroke-width="4" stroke-linecap="round"/>
+    <text x="88" y="246" font-size="23" font-weight="720">MUTATION</text>
+    <text x="386" y="246" text-anchor="end" class="chip" fill="var(--fail)">FAIL</text>
+    <text x="30" y="324" class="chip" fill="var(--blue)">OFFLINE · NO API KEYS · NO NETWORK</text>
+  </g>
+  <rect x="92" y="496" width="208" height="52" rx="26" fill="var(--blue-soft)"/>
+  <text x="196" y="529" text-anchor="middle" class="chip" fill="var(--blue)">PROVENANCE FIRST</text>
+  <text x="332" y="529" class="chip" fill="var(--muted)">5-step reviewer path</text>
+</svg>

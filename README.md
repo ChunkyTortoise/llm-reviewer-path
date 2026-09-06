@@ -1,9 +1,12 @@
 # llm-reviewer-path
 
-[![ci](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+**A cloneable, 10-minute hiring-manager index for dependable agent systems.**
 
-Cloneable 10-minute hiring-manager index. Not a product. Not a RAG app.
+Inspect the evidence, rerun the receipts, and check how failure is handled. The path runs without API keys or network access. Fourteen offline tests cover an evaluation gate, approval-token isolation for hard actions, and retrieval failure modes.
+
+<p align="center">
+  <img src="./docs/assets/reviewer-receipt.svg" width="620" alt="Eval-gate receipt showing a good candidate passing, a mutation failing, and the hard-action approval sequence." />
+</p>
 
 ```bash
 git clone https://github.com/ChunkyTortoise/llm-reviewer-path
@@ -31,9 +34,21 @@ tests/test_retrieval_failure_modes.py .....                              [100%]
 
 </details>
 
+## Start with evidence
+
+| Step | Inspect | What the evidence shows |
+|---:|---|---|
+| 1 | [Provenance table](#provenance) | Where the public evidence comes from |
+| 2 | [Eval-gate receipt](#eval-gate-receipt) | A good candidate passes and a mutation fails |
+| 3 | [Hard-action receipt](#hard-action-receipt) | Proposal, denial without approval, signed approval, one execution, and duplicate retry suppression |
+| 4 | [Retrieval failure modes](#retrieval-failure-modes) | Offline tests for retrieval failure behavior |
+| 5 | [Field-engineering scope receipt](#field-engineering-scope-receipt) | An anonymized scope artifact |
+
+> **Evidence boundary:** This repository is an index, not a product or RAG app. It documents the offline tests and receipts listed above. It does not claim unlisted production behavior, client details, metrics, or features.
+
 ## Architecture & Approval Boundaries
 
-### 1. Hard Action Approval Token Flow
+### Hard-action receipt
 Demonstrates runtime isolation of dangerous side effects (CRM updates, external calls) behind a cryptographic approval-token gate with duplicate suppression:
 
 ```mermaid
@@ -67,7 +82,7 @@ sequenceDiagram
     Action-->>Agent: DuplicateExecutionSuppressed
 ```
 
-### 2. Evaluation Gate as CI Merge Block
+### Eval-gate receipt
 Demonstrates how offline fixture replays act as strict deployment and merge gates:
 
 ```mermaid
@@ -104,7 +119,13 @@ flowchart LR
 1. Provenance table and parents above.
 2. Eval gate: good candidate passes; `MUTATION` is rejected; default CI is green because that rejection is expected.
 3. Hard action: `search_contact -> propose_update -> denied_without_approval -> approved -> execute_once -> duplicate_retry_suppressed`.
-4. Retrieval failure-mode tests extracted from DocExtract. Mock retriever, no network. This is a test suite, not a RAG app.
-5. Narrative receipt: `receipts/fde_scope/ACUITY.md`.
+
+### Retrieval failure modes
+
+Retrieval failure-mode tests extracted from DocExtract. Mock retriever, no network. This is a test suite, not a RAG app.
+
+### Field-engineering scope receipt
+
+Narrative receipt: `receipts/fde_scope/ACUITY.md`.
 
 Parents stay the production systems. This repo is the cloneable index.
