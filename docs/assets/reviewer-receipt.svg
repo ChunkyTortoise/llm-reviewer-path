@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460" role="img" aria-labelledby="proof-title proof-desc">
+  <title id="proof-title">llm-reviewer-path proof receipt</title>
+  <desc id="proof-desc">A compact evidence card showing a good candidate passing the evaluation gate, a mutation failing, and a hard-action sequence from proposal through duplicate retry suppression.</desc>
+  <style>
+    :root { --bg:#F4F1E8; --surface:#FFFCF4; --ink:#142029; --muted:#4B5B63; --line:#C8D0CF; --blue:#0B5CAD; --blue-soft:#DCEBFA; --pass:#136C4A; --pass-soft:#DDEFE6; --fail:#9A2B2B; --fail-soft:#F6DEDE; --amber:#8A4A00; --amber-soft:#F7E6C9; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#0D151B; --surface:#15222B; --ink:#F5F1E8; --muted:#BAC6CA; --line:#3D4D56; --blue:#76B7FF; --blue-soft:#173A56; --pass:#7AD7AC; --pass-soft:#173B2F; --fail:#FF9292; --fail-soft:#4B2528; --amber:#FFC06D; --amber-soft:#49351D; } }
+    text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; fill:var(--ink); }
+    .label { font-size:11px; font-weight:700; letter-spacing:1.4px; }
+    .title { font-size:25px; font-weight:760; letter-spacing:-0.5px; }
+    .body { font-size:13px; fill:var(--muted); }
+    .mono { font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace; }
+    .small { font-size:12px; }
+  </style>
+  <rect width="390" height="460" rx="24" fill="var(--bg)"/>
+  <text x="20" y="27" class="label" fill="var(--blue)">REPRODUCIBLE REVIEWER PATH</text>
+  <text x="20" y="62" class="title">Trust is a receipt,</text>
+  <text x="20" y="90" class="title">not a promise.</text>
+  <text x="20" y="116" class="body">10 minutes · offline · no API keys · no network</text>
+  <rect x="20" y="138" width="350" height="166" rx="16" fill="var(--surface)" stroke="var(--line)"/>
+  <text x="38" y="164" class="label">EVAL-GATE RECEIPT</text>
+  <text x="352" y="164" text-anchor="end" class="small mono" fill="var(--muted)">14 TESTS</text>
+  <line x1="38" y1="177" x2="352" y2="177" stroke="var(--line)"/>
+  <rect x="38" y="190" width="314" height="42" rx="10" fill="var(--pass-soft)"/>
+  <circle cx="58" cy="211" r="8" fill="var(--pass)"/>
+  <path d="M54 211l3 3 6-7" fill="none" stroke="var(--surface)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="76" y="216" class="small" font-weight="700">GOOD CANDIDATE</text>
+  <text x="334" y="216" text-anchor="end" class="label" fill="var(--pass)">PASS</text>
+  <rect x="38" y="241" width="314" height="42" rx="10" fill="var(--fail-soft)"/>
+  <circle cx="58" cy="262" r="8" fill="var(--fail)"/>
+  <path d="M55 259l6 6m0-6l-6 6" fill="none" stroke="var(--surface)" stroke-width="2" stroke-linecap="round"/>
+  <text x="76" y="267" class="small" font-weight="700">MUTATION</text>
+  <text x="334" y="267" text-anchor="end" class="label" fill="var(--fail)">FAIL</text>
+  <rect x="20" y="320" width="350" height="83" rx="16" fill="var(--amber-soft)" stroke="var(--line)"/>
+  <text x="38" y="345" class="label" fill="var(--amber)">HARD-ACTION RECEIPT</text>
+  <text x="38" y="369" class="small">Proposal → denied without approval → signed approval</text>
+  <text x="38" y="389" class="small">→ one execution → duplicate retry suppressed</text>
+  <text x="20" y="428" class="label" fill="var(--blue)">01 PROVENANCE  ·  02 EVAL  ·  03 HARD ACTION</text>
+  <text x="20" y="449" class="label" fill="var(--blue)">04 RETRIEVAL  ·  05 SCOPE RECEIPT</text>
+</svg>
