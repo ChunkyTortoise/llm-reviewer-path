@@ -1,6 +1,6 @@
 # Acuity Real Estate (redacted)
 
-Numbers: METRICS-SOT.md, last synced 2026-08-12.
+Figures below were copied from METRICS-SOT.md on 2026-08-12. That file is not in this repository. `ChunkyTortoise/jorge_real_estate_bots` is not a public GitHub repository. This note adds no new measurements.
 
 ## Customer problem
 
