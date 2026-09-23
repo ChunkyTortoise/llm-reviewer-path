@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Offline hiring-manager receipts extracted from shipped LLM systems"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "langgraph>=1.2.12",
+]
 
 [build-system]
 requires = ["hatchling"]

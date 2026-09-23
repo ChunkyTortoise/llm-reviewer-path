@@ -18,7 +18,7 @@
   <text x="20" y="116" class="body">10 minutes · offline · no API keys · no network</text>
   <rect x="20" y="138" width="350" height="166" rx="16" fill="var(--surface)" stroke="var(--line)"/>
   <text x="38" y="164" class="label">EVAL-GATE RECEIPT</text>
-  <text x="352" y="164" text-anchor="end" class="small mono" fill="var(--muted)">14 TESTS</text>
+  <text x="352" y="164" text-anchor="end" class="small mono" fill="var(--muted)">18 TESTS</text>
   <line x1="38" y1="177" x2="352" y2="177" stroke="var(--line)"/>
   <rect x="38" y="190" width="314" height="42" rx="10" fill="var(--pass-soft)"/>
   <circle cx="58" cy="211" r="8" fill="var(--pass)"/>
