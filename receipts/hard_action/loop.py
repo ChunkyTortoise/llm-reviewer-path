@@ -33,6 +33,12 @@ class ActionLoop:
         self.audit.append({"kind": "issued_approval", "preview_id": preview_id})
         return token
 
+    def approval_matches(self, preview_id: str, approval: str | None) -> bool:
+        expected = self._approvals.get(preview_id)
+        if expected is None or not isinstance(approval, str):
+            return False
+        return secrets.compare_digest(approval, expected)
+
     def execute(self, preview_id: str, approval: str | None) -> dict[str, Any]:
         if approval is None:
             self.audit.append(

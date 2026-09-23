@@ -22,7 +22,7 @@
   <g transform="translate(712 104)">
     <rect width="440" height="356" rx="24" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/>
     <text x="30" y="48" class="label">EVAL-GATE RECEIPT</text>
-    <text x="410" y="48" text-anchor="end" class="chip mono" fill="var(--muted)">14 TESTS</text>
+    <text x="410" y="48" text-anchor="end" class="chip mono" fill="var(--muted)">18 TESTS</text>
     <line x1="30" y1="68" x2="410" y2="68" stroke="var(--line)" stroke-width="2"/>
     <rect x="30" y="94" width="380" height="84" rx="14" fill="var(--pass-soft)"/>
     <circle cx="62" cy="136" r="14" fill="var(--pass)"/>
