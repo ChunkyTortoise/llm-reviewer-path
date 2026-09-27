@@ -13,6 +13,7 @@ class ActionLoop:
         self._contacts = {"ada": {"name": "Ada", "city": "NY"}}
         self._previews: dict[str, dict[str, Any]] = {}
         self._approvals: dict[str, str] = {}
+        self._approved_specs: dict[str, dict[str, Any]] = {}
         self._executed: set[str] = set()
         self.audit: list[dict[str, str]] = []
 
@@ -23,11 +24,15 @@ class ActionLoop:
 
     def propose_update(self, query: str, patch: dict[str, str]) -> dict[str, Any]:
         preview_id = secrets.token_hex(8)
-        self._previews[preview_id] = {"query": query.lower(), "patch": patch}
+        self._previews[preview_id] = {"query": query.lower(), "patch": dict(patch)}
         self.audit.append({"kind": "propose_update", "preview_id": preview_id})
-        return {"status": "preview", "preview_id": preview_id, "patch": patch}
+        return {"status": "preview", "preview_id": preview_id, "patch": dict(patch)}
 
     def issue_approval(self, preview_id: str) -> str:
+        spec = self._previews[preview_id]
+        self._approved_specs[preview_id] = {
+            "query": spec["query"], "patch": dict(spec["patch"])
+        }
         token = "tok_" + secrets.token_hex(8)
         self._approvals[preview_id] = token
         self.audit.append({"kind": "issued_approval", "preview_id": preview_id})
@@ -46,12 +51,17 @@ class ActionLoop:
             or not secrets.compare_digest(approval, expected)
         ):
             raise ApprovalError("untrusted approval")
+        spec = self._previews[preview_id]
+        if spec != self._approved_specs[preview_id]:
+            self.audit.append(
+                {"kind": "denied_changed_proposal", "preview_id": preview_id}
+            )
+            raise ApprovalError("proposal changed after approval")
         if preview_id in self._executed:
             self.audit.append(
                 {"kind": "duplicate_retry_suppressed", "preview_id": preview_id}
             )
             return {"status": "duplicate_retry_suppressed"}
-        spec = self._previews[preview_id]
         self._contacts[spec["query"]].update(spec["patch"])
         self._executed.add(preview_id)
         self.audit.append({"kind": "execute_once", "preview_id": preview_id})
