@@ -78,28 +78,28 @@ uv run python -m receipts.replay
 sequenceDiagram
     autonumber
     actor Caller as Caller (same process)
-    participant Loop as ActionLoop
+    participant Boundary as ActionLoop
 
-    Caller->>Loop: search_contact("ada")
-    Loop-->>Caller: ok, contact fields
+    Caller->>Boundary: search_contact("ada")
+    Boundary-->>Caller: ok, contact fields
 
-    Caller->>Loop: propose_update("ada", patch)
-    Loop-->>Caller: status=preview, preview_id
+    Caller->>Boundary: propose_update("ada", patch)
+    Boundary-->>Caller: status=preview, preview_id
 
-    Caller->>Loop: execute(preview_id, approval=None)
-    Loop-->>Caller: denied_without_approval
+    Caller->>Boundary: execute(preview_id, approval=None)
+    Boundary-->>Caller: denied_without_approval
 
-    Caller->>Loop: execute(preview_id, model text)
-    Loop-->>Caller: ApprovalError untrusted approval
+    Caller->>Boundary: execute(preview_id, model text)
+    Boundary-->>Caller: ApprovalError untrusted approval
 
-    Caller->>Loop: issue_approval(preview_id)
-    Loop-->>Caller: tok_...
+    Caller->>Boundary: issue_approval(preview_id)
+    Boundary-->>Caller: tok_...
 
-    Caller->>Loop: execute(preview_id, token)
-    Loop-->>Caller: execute_once
+    Caller->>Boundary: execute(preview_id, token)
+    Boundary-->>Caller: execute_once
 
-    Caller->>Loop: execute(preview_id, token)
-    Loop-->>Caller: duplicate_retry_suppressed
+    Caller->>Boundary: execute(preview_id, token)
+    Boundary-->>Caller: duplicate_retry_suppressed
 ```
 
 The diagram above summarizes the replay. The same caller issues and uses the token in one process; there is no separately authenticated approver. The changed-proposal rejection is a separate scenario. It is an internal-state test in `tests/test_hard_action.py`, not part of the replay, and it does not happen after the successful execution above:
@@ -108,14 +108,14 @@ The diagram above summarizes the replay. The same caller issues and uses the tok
 sequenceDiagram
     autonumber
     actor Caller as Caller (same process)
-    participant Loop as ActionLoop
+    participant Boundary as ActionLoop
     participant Test as pytest (edits private state)
 
-    Caller->>Loop: issue_approval(preview_id)
-    Loop-->>Caller: tok_...
-    Test->>Loop: change stored proposal
-    Test->>Loop: execute(preview_id, token)
-    Loop-->>Test: ApprovalError proposal changed, no write
+    Caller->>Boundary: issue_approval(preview_id)
+    Boundary-->>Caller: tok_...
+    Test->>Boundary: change stored proposal
+    Test->>Boundary: execute(preview_id, token)
+    Boundary-->>Test: ApprovalError proposal changed, no write
 ```
 
 ### Eval-gate receipt
