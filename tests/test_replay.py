@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _run_replay() -> str:
     result = subprocess.run(
-        [sys.executable, "-m", "receipts.replay"],
+        [sys.executable, "-m", "receipts"],
         cwd=ROOT,
         capture_output=True,
         text=True,
