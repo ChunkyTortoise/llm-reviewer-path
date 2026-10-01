@@ -28,4 +28,4 @@ If GHL writes failed or Spanish paths fell through, pause new bot types and fix 
 
 ## Result and handoff
 
-January to March 2026 production run. Client-reported 500+ inbound leads processed. 1,700+ tests at handoff. Audit of 226 existing GHL workflows.
+January to March 2026 production run. 500+ inbound leads processed (client-reported). 1,700+ tests at handoff and 226 existing GHL workflows reviewed (historical figures copied from a non-public source, not independently reproduced here).

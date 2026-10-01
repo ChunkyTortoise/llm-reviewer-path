@@ -1,28 +1,33 @@
 <?xml version="1.0" ?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 600" role="img" aria-labelledby="title desc">
-  <title id="title">Offline evaluation and approval receipt</title>
-  <desc id="desc">Verified local fixture output: good passes, mutation fails, missing approval is denied, one approved execution, duplicate suppressed. Editorial summary, not production authorization.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 724" role="img" aria-labelledby="title desc">
+  <title id="title">Offline evaluation and approval receipt, with one internal-state test</title>
+  <desc id="desc">Replay output: GOOD scores 1.00 and passes. MUTATION scores 0.80 and fails because it labels the injection case as clean. A missing approval is denied, one approved execution runs, and the duplicate retry is suppressed. A separate panel labeled Internal-state test shows that a proposal changed after approval is rejected with ApprovalError and no write; the replay does not run it. Editorial summary, not production authorization.</desc>
   <style>:root{--bg:#f4f1e8;--panel:#fffcf4;--ink:#142029;--muted:#4b5b63;--line:#c8d0cf;--pass:#136c4a;--fail:#9a2b2b}@media(prefers-color-scheme:dark){:root{--bg:#0d151b;--panel:#15222b;--ink:#f5f1e8;--muted:#bac6ca;--line:#3d4d56;--pass:#7ad7ac;--fail:#ff9292}}text{font-family:Arial,sans-serif;fill:var(--ink)}.small{font-size:17px;fill:var(--muted)}.body{font-size:21px}.status{font-size:21px;font-weight:700}</style>
-  <rect width="460" height="600" rx="20" fill="var(--bg)"/>
+  <rect width="460" height="724" rx="20" fill="var(--bg)"/>
   <text x="26" y="38" class="small">LLM-REVIEWER-PATH / OFFLINE FIXTURES</text>
   <text x="26" y="83" font-size="34" font-weight="700">Run it. Inspect the result.</text>
   <text x="26" y="114" class="small">Editorial summary of captured Python output</text>
-  <rect x="24" y="140" width="412" height="133" rx="12" fill="var(--panel)" stroke="var(--line)"/>
+  <rect x="24" y="140" width="412" height="161" rx="12" fill="var(--panel)" stroke="var(--line)"/>
   <text x="42" y="173" class="small">TWO RUNS / FIVE CASES EACH</text>
   <text x="42" y="214" class="body">GOOD · 1.00</text>
   <text x="414" y="214" text-anchor="end" class="status" style="fill:var(--pass)">PASS</text>
   <text x="42" y="251" class="body">MUTATION · 0.80</text>
   <text x="414" y="251" text-anchor="end" class="status" style="fill:var(--fail)">FAIL</text>
-  <text x="26" y="313" class="small">APPROVAL / IN-MEMORY CONTACT UPDATE</text>
-  <text x="26" y="354" class="small">01</text>
-  <text x="65" y="354" class="body">No token: write denied</text>
-  <text x="26" y="394" class="small">02</text>
-  <text x="65" y="394" class="body">Model text: ApprovalError</text>
-  <text x="26" y="434" class="small">03</text>
-  <text x="65" y="434" class="body">Issued token: execute once</text>
-  <text x="26" y="474" class="small">04</text>
-  <text x="65" y="474" class="body">Retry: duplicate suppressed</text>
-  <line x1="26" y1="506" x2="434" y2="506" stroke="var(--line)"/>
-  <text x="26" y="538" class="small">Local teaching example. No live CRM.</text>
-  <text x="26" y="566" class="small">Read the receipt for reproduction and limits.</text>
+  <text x="42" y="278" class="small">Why: injection case labeled clean</text>
+  <text x="26" y="341" class="small">APPROVAL / IN-MEMORY CONTACT UPDATE</text>
+  <text x="26" y="382" class="small">01</text>
+  <text x="65" y="382" class="body">No token: write denied</text>
+  <text x="26" y="422" class="small">02</text>
+  <text x="65" y="422" class="body">Model text: ApprovalError</text>
+  <text x="26" y="462" class="small">03</text>
+  <text x="65" y="462" class="body">Issued token: execute once</text>
+  <text x="26" y="502" class="small">04</text>
+  <text x="65" y="502" class="body">Retry: duplicate suppressed</text>
+  <rect x="24" y="524" width="412" height="92" rx="12" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="6 4"/>
+  <text x="42" y="551" class="small">INTERNAL-STATE TEST / NOT IN REPLAY</text>
+  <text x="42" y="584" class="body">Changed proposal: rejected</text>
+  <text x="42" y="606" class="small">ApprovalError, no write (pytest only)</text>
+  <line x1="26" y1="646" x2="434" y2="646" stroke="var(--line)"/>
+  <text x="26" y="678" class="small">Local teaching example. No live CRM.</text>
+  <text x="26" y="706" class="small">Read the receipt for reproduction and limits.</text>
 </svg>
