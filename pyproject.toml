@@ -1,7 +1,7 @@
 [project]
 name = "llm-reviewer-path"
 version = "0.1.0"
-description = "Offline hiring-manager receipts extracted from shipped LLM systems"
+description = "A 10-minute runnable code sample: offline eval gates, approval-bound writes, and idempotent retries"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
