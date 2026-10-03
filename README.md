@@ -1,6 +1,6 @@
 # llm-reviewer-path: eval gates, approval-bound writes, idempotent retries
 
-**A 10-minute runnable code sample: an eval gate rejects a mutated candidate that labels a prompt injection as clean, a write runs only with an issued approval token, and a retried write is suppressed instead of applied twice.** Everything runs offline on local fixtures, with no API keys.
+**A 10-minute runnable code sample: an eval gate fails when a label set disagrees with the classifier (a mutated label set marks a prompt injection as clean), a write runs only with an issued approval token, and a retried write is suppressed instead of applied twice.** Everything runs offline on local fixtures, with no API keys.
 
 [![CI](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
@@ -16,7 +16,7 @@
 | Kind | Result | Value | Source |
 |---|---|---|---|
 | CI gate | Eval floor: `gate()` passes only at this score, and only with the complete fixture set | **1.00** | [`gate.py#L6`](receipts/eval_gate/gate.py#L6) (`THRESHOLD`) |
-| Measured | Correct candidate vs. mutated candidate (injection case labeled clean) | **1.00 pass / 0.80 fail** | [`offline-receipt.md#L16-L17`](docs/offline-receipt.md#L16-L17) · [`test_eval_gate.py`](tests/test_eval_gate.py) |
+| Measured | Correct label set vs. mutated label set (injection case marked clean), scored against the classifier | **1.00 pass / 0.80 fail** | [`offline-receipt.md#L16-L17`](docs/offline-receipt.md#L16-L17) · [`test_eval_gate.py`](tests/test_eval_gate.py) |
 | Measured | Writes applied when an approved write is retried with the same token | **1** (retry returns `duplicate_retry_suppressed`) | [`test_hard_action.py#L94-L103`](tests/test_hard_action.py#L94-L103) |
 | Inventory | Failure-mode fixtures: empty retrieval, conflicting evidence, prompt injection, malformed structured output, clean | **5** | [`cases.py#L11-L29`](receipts/retrieval_failure_modes/cases.py#L11-L29) |
 | CI gate | Offline tests, run by CI on every push and pull request | **36** | [`ci.yml`](.github/workflows/ci.yml) · [`tests/`](tests/) · [`offline-receipt.md#L27`](docs/offline-receipt.md#L27) |
@@ -120,7 +120,7 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `uv sync --grou
 
 These patterns come from the full systems:
 
-| Pattern | Production source |
+| Pattern | Source |
 |---|---|
 | Offline replay as a CI check | DocExtract [offline replay](https://github.com/ChunkyTortoise/docextract/blob/main/scripts/eval_offline_replay.py), [gate](https://github.com/ChunkyTortoise/docextract/blob/main/scripts/eval_gate.py), [gate proof](https://github.com/ChunkyTortoise/docextract/blob/main/docs/eval-gate-proof.md), [workflow](https://github.com/ChunkyTortoise/docextract/blob/main/.github/workflows/eval-gate.yml), [PR #32](https://github.com/ChunkyTortoise/docextract/pull/32) |
 | Indirect prompt injection in untrusted document text | DocExtract [ADR-0020](https://github.com/ChunkyTortoise/docextract/blob/main/docs/adr/0020-indirect-prompt-injection-defense.md), [failure analysis](https://github.com/ChunkyTortoise/docextract/blob/main/docs/eval-failure-analysis.md), [injection guard](https://github.com/ChunkyTortoise/docextract/blob/main/app/services/injection_guard.py) |
