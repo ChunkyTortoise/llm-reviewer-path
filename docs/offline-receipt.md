@@ -34,6 +34,14 @@ The classification cases are fixed local fixtures. The mutation changes the expe
 
 ## Visual asset provenance
 
-`docs/assets/reviewer-receipt.svg` is a hand-authored editorial diagram summarizing the output above (two fixture runs and an in-memory approval sequence) plus one panel labeled `Internal-state test` for the changed-proposal rejection, which the replay does not run. It is not a terminal capture. `docs/assets/terminal-demo.gif` is a real terminal capture of `uv sync --group dev`, `uv run pytest` and `uv run python -m receipts` in a fresh checkout of this commit, recorded 2026-10-05 with `docs/demo.tape` (vhs 0.11.0); the tape re-renders the GIF and the commands print the same output as the block above. `docs/assets/social-preview.svg` is an editorial social card; `social-preview.png` is its unmodified 1280x640 Chrome rasterization, captured on 2026-09-26. No generated application output or client data is used.
+`docs/assets/reviewer-receipt.svg` is a hand-authored editorial diagram summarizing the output above (two fixture runs and an in-memory approval sequence) plus one panel labeled `Internal-state test` for the changed-proposal rejection, which the replay does not run. It is not a terminal capture. `docs/assets/terminal-demo.gif` is a real terminal capture of `uv sync --group dev`, `uv run pytest` and `uv run python -m receipts` in a fresh checkout of this commit, recorded 2026-10-05 with `docs/demo.tape` (vhs 0.11.0); the tape re-renders the GIF and the commands print the same output as the block above. `docs/assets/social-preview.svg` is an editorial social card; `social-preview.png` is its unmodified 1280x640 Chrome rasterization, captured on 2026-09-26. The editorial figures use no client data. The GIF captures this local sample's actual terminal output.
 
 The evaluation boundary rejects missing fixtures with `CoverageError` and unknown IDs with `KeyError` before scoring. The gate also checks the exact case IDs and count on externally constructed reports. The report describes fixed-fixture results; supplying a complete report does not prove an external evaluation was honest.
+
+### Re-render the terminal capture
+
+Run `vhs docs/demo.tape` from the repository root with Python >=3.10, uv, VHS 0.11.0, ttyd and ffmpeg already installed and on PATH. VHS needs its supported Chromium runtime. No API key is required; `uv sync --group dev` may need network access to resolve or download dependencies.
+
+The tape waits for each command to finish at the shell prompt (timeout 120 seconds). It also checks for the pytest result and duplicate-retry output before continuing; the two-second pauses between commands and the final fourteen-second pause are reading time. Runtime, package-install output and timings vary by host, so re-renders are not byte-identical. If a command fails or times out, inspect the output and do not publish that capture.
+
+The recording made on 2026-10-05 uses the code at `78fe508` plus presentation changes in PR #8. The GIF is an illustration of a local sample, not a production authorization system.
