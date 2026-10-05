@@ -46,6 +46,11 @@ python3 -m venv .venv
 
 `pytest` should report every test passing (count in [Results](#results)). `python -m receipts` replays the eval scores and the approval sequence; its output must match the block in [docs/offline-receipt.md](docs/offline-receipt.md), and a test fails if it drifts.
 
+<p align="center">
+  <img src="./docs/assets/terminal-demo.gif" width="720" alt="Terminal capture: uv sync --group dev, uv run pytest reporting 36 passed, and uv run python -m receipts printing GOOD score=1.00 gate=True, MUTATION score=0.80 gate=False, then the approval sequence: denied_without_approval, ApprovalError untrusted approval, execute_once, duplicate_retry_suppressed." />
+</p>
+<p align="center"><sub>Terminal capture of the quickstart commands above, recorded 2026-10-05 from this commit (<a href="docs/demo.tape">vhs tape</a> re-renders it; <a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
+
 Then read the code in this order:
 
 1. **Eval gate:** [`receipts/eval_gate/gate.py`](receipts/eval_gate/gate.py). `GOOD` passes, `MUTATION` fails, incomplete labels raise `CoverageError`, unknown IDs raise `KeyError`.
@@ -149,7 +154,7 @@ These patterns come from the full systems:
 - The changed-proposal rejection is checked by an internal-state test in `tests/test_hard_action.py` that edits private state (`_previews`) after approval. The replay does not run it, and it is a separate scenario, not something that happens after the successful execution in the replay.
 
 **Hero figure**
-- `docs/assets/reviewer-receipt.svg` is a hand-authored editorial diagram summarizing actual replay output, plus one panel labeled `Internal-state test` that comes from pytest only. It is not a terminal capture or a product screenshot. `docs/assets/social-preview.svg` is an editorial social card and `social-preview.png` is its rasterization ([provenance](docs/offline-receipt.md#visual-asset-provenance)).
+- `docs/assets/reviewer-receipt.svg` is a hand-authored editorial diagram summarizing actual replay output, plus one panel labeled `Internal-state test` that comes from pytest only. It is not a terminal capture or a product screenshot. `docs/assets/terminal-demo.gif` is a real terminal capture of the quickstart commands, recorded with [`docs/demo.tape`](docs/demo.tape). `docs/assets/social-preview.svg` is an editorial social card and `social-preview.png` is its rasterization ([provenance](docs/offline-receipt.md#visual-asset-provenance)).
 - The replay prints scores and the approval sequence without tokens or random preview IDs, so its output is stable; runtime varies.
 
 **Environment**
