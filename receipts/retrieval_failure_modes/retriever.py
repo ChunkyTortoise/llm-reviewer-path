@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 
 from receipts.retrieval_failure_modes.cases import CASES
@@ -14,6 +15,18 @@ def _looks_like_injection(text: str) -> bool:
     return "ignore prior instructions" in lowered or "ignore previous" in lowered
 
 
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"Nonstandard JSON constant: {value}")
+
+
+def _is_valid_json_object(raw: str) -> bool:
+    try:
+        parsed = json.loads(raw, parse_constant=_reject_json_constant)
+    except ValueError:
+        return False
+    return isinstance(parsed, dict)
+
+
 def classify(case_id: str) -> ClassifyResult:
     case = CASES[case_id]
     if case.retrieved.strip() == "":
@@ -22,6 +35,6 @@ def classify(case_id: str) -> ClassifyResult:
         return ClassifyResult(False, "conflicting_evidence")
     if _looks_like_injection(case.retrieved):
         return ClassifyResult(False, "prompt_injection")
-    if not (case.expected_json.startswith("{") and case.expected_json.endswith("}")):
+    if not _is_valid_json_object(case.expected_json):
         return ClassifyResult(False, "malformed_structured_output")
     return ClassifyResult(True, None)

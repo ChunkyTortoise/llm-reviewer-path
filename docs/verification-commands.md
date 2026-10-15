@@ -14,15 +14,24 @@ Approval (10 tests):
 uv run pytest tests/test_hard_action.py
 ```
 
-Retrieval (5 tests):
+Retrieval (9 tests):
 
 ```bash
 uv run pytest tests/test_retrieval_failure_modes.py
 ```
 
-Receipt (2 tests):
+Receipt and README checks (4 tests):
 
 ```bash
 uv run pytest tests/test_replay.py
 uv run python -m receipts
 ```
+
+Strict typing and lint (development tools are declared and locked):
+
+```bash
+uv run mypy --strict receipts tests
+uv run ruff check receipts tests
+```
+
+The full suite currently collects 42 tests. Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The 2026-10-05 terminal GIF remains a historical 36-test recording; replay stdout is unchanged.

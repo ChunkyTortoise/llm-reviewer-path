@@ -23,15 +23,21 @@ class ActionLoop:
         return {"ok": True, **row}
 
     def propose_update(self, query: str, patch: dict[str, str]) -> dict[str, Any]:
+        normalized = query.lower()
+        if normalized not in self._contacts:
+            raise KeyError(query)
         preview_id = secrets.token_hex(8)
-        self._previews[preview_id] = {"query": query.lower(), "patch": dict(patch)}
+        self._previews[preview_id] = {"query": normalized, "patch": dict(patch)}
         self.audit.append({"kind": "propose_update", "preview_id": preview_id})
         return {"status": "preview", "preview_id": preview_id, "patch": dict(patch)}
 
     def issue_approval(self, preview_id: str) -> str:
+        if preview_id in self._executed:
+            raise ApprovalError("preview already executed")
         spec = self._previews[preview_id]
         self._approved_specs[preview_id] = {
-            "query": spec["query"], "patch": dict(spec["patch"])
+            "query": spec["query"],
+            "patch": dict(spec["patch"]),
         }
         token = "tok_" + secrets.token_hex(8)
         self._approvals[preview_id] = token

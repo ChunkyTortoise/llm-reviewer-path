@@ -46,6 +46,8 @@ def evaluate(candidate: Candidate) -> Report:
 
 
 def gate(report: Report) -> bool:
+    if isinstance(report.score, bool) or not isinstance(report.score, (int, float)):
+        return False
     return (
         report.case_ids == REQUIRED_CASE_IDS
         and report.n == len(REQUIRED_CASE_IDS)
