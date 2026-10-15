@@ -139,7 +139,7 @@ These patterns come from the full systems:
 
 **Scope**
 - Scope: a compact, offline code sample; the full systems are linked in [Design decisions](#design-decisions). Retrieval is mocked, so there is no RAG pipeline here. [DocExtract](https://github.com/ChunkyTortoise/docextract) is the production system for the eval and retrieval patterns above; this repo does not claim unlisted production behavior, client details, metrics or features, and no DocExtract number is a result reproduced here.
-- The local eval gate is a boolean over fixed fixtures. It is not branch protection on DocExtract, and it is a different demonstration from DocExtract's public red regression (PR #32; see Provenance dates below).
+- The local eval gate is a boolean over fixed fixtures. It is not branch protection on DocExtract, and it is a different demonstration from DocExtract's recorded failing regression run (PR #32, closed unmerged; see Provenance dates below).
 - What is copied from the parent vs. added here: the parent contributes offline replay as a CI check, a public red regression, and the indirect prompt-injection threat model. Added here: the floor with exact fixture coverage, the asserted mutation, the local mock classifier and its fixtures, and the whole approval-token boundary.
 
 **Eval gate and fixtures**
@@ -166,7 +166,7 @@ These patterns come from the full systems:
 - Its lead-volume figure is client-reported. Its test and workflow counts are historical figures copied from a non-public source. None of them is measured or reproduced here, which is why none appears in [Results](#results).
 
 **Provenance dates**
-- Parent links were checked against DocExtract `main` and the public GitHub account on 2026-09-23 and not re-checked since. Historical observations from that date: PR #32 was open and red, and DocExtract recorded a 2026-09-19 finding that its default branch was unprotected. This repo did not refresh those observations or change branch protection.
+- Parent links were re-checked on 2026-10-15 against DocExtract's public README and GitHub PR #32. DocExtract PR #32 was closed without merge on 2026-10-03. Per DocExtract's README, DocExtract's main branch has required the CI test check since 2026-10-03.
 
 </details>
 
