@@ -3,14 +3,16 @@ import pytest
 from receipts.hard_action.loop import ActionLoop, ApprovalError
 
 
-def test_read_executes_without_approval():
+def test_read_executes_without_approval() -> None:
     loop = ActionLoop()
     out = loop.search_contact("ada")
     assert out["ok"] is True
     assert out["name"] == "Ada"
+    with pytest.raises(KeyError):
+        loop.propose_update("unknown_contact", {"city": "LA"})
 
 
-def test_write_denied_without_approval():
+def test_write_denied_without_approval() -> None:
     loop = ActionLoop()
     preview = loop.propose_update("ada", {"city": "LA"})
     assert preview["status"] == "preview"
@@ -18,7 +20,7 @@ def test_write_denied_without_approval():
     assert denied["status"] == "denied_without_approval"
 
 
-def test_model_text_cannot_approve():
+def test_model_text_cannot_approve() -> None:
     loop = ActionLoop()
     preview = loop.propose_update("ada", {"city": "LA"})
     try:
@@ -31,7 +33,7 @@ def test_model_text_cannot_approve():
         pass
 
 
-def test_approved_execute_once_and_duplicate_retry_suppressed():
+def test_approved_execute_once_and_duplicate_retry_suppressed() -> None:
     loop = ActionLoop()
     preview = loop.propose_update("ada", {"city": "LA"})
     token = loop.issue_approval(preview["preview_id"])
@@ -41,7 +43,7 @@ def test_approved_execute_once_and_duplicate_retry_suppressed():
     assert second["status"] == "duplicate_retry_suppressed"
 
 
-def test_audit_contains_denied_and_executed():
+def test_audit_contains_denied_and_executed() -> None:
     loop = ActionLoop()
     preview = loop.propose_update("ada", {"city": "LA"})
     loop.execute(preview["preview_id"], approval=None)
@@ -52,7 +54,7 @@ def test_audit_contains_denied_and_executed():
     assert "execute_once" in kinds
 
 
-def test_caller_patch_cannot_change_approved_write():
+def test_caller_patch_cannot_change_approved_write() -> None:
     loop = ActionLoop()
     patch = {"city": "LA"}
     preview = loop.propose_update("ada", patch)
@@ -63,7 +65,7 @@ def test_caller_patch_cannot_change_approved_write():
     assert loop.search_contact("ada")["city"] == "LA"
 
 
-def test_returned_preview_cannot_change_approved_write():
+def test_returned_preview_cannot_change_approved_write() -> None:
     loop = ActionLoop()
     preview = loop.propose_update("ada", {"city": "LA"})
     token = loop.issue_approval(preview["preview_id"])
@@ -71,9 +73,8 @@ def test_returned_preview_cannot_change_approved_write():
     loop.execute(preview["preview_id"], token)
     assert loop.search_contact("ada")["city"] == "LA"
 
-
 @pytest.mark.parametrize("field", ["query", "patch"])
-def test_internal_proposal_change_is_rejected_before_write(field):
+def test_internal_proposal_change_is_rejected_before_write(field: str) -> None:
     loop = ActionLoop()
     loop._contacts["other"] = {"name": "Other", "city": "NY"}
     preview = loop.propose_update("ada", {"city": "LA"})
@@ -90,8 +91,7 @@ def test_internal_proposal_change_is_rejected_before_write(field):
     assert not loop._executed
     assert any(e["kind"] == "denied_changed_proposal" for e in loop.audit)
 
-
-def test_duplicate_retry_does_not_apply_patch_again():
+def test_duplicate_retry_does_not_apply_patch_again() -> None:
     loop = ActionLoop()
     preview = loop.propose_update("ada", {"city": "LA"})
     pid = preview["preview_id"]
@@ -101,3 +101,5 @@ def test_duplicate_retry_does_not_apply_patch_again():
     assert loop.execute(pid, token)["status"] == "duplicate_retry_suppressed"
     assert loop.search_contact("ada")["city"] == "CHANGED_ELSEWHERE"
     assert sum(e["kind"] == "execute_once" for e in loop.audit) == 1
+    with pytest.raises(ApprovalError, match="already executed"):
+        loop.issue_approval(pid)

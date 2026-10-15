@@ -11,25 +11,28 @@ from receipts.eval_gate.gate import (
 )
 
 
-def test_unknown_case_errors_not_skip():
+def test_unknown_case_errors_not_skip() -> None:
     with pytest.raises(KeyError):
         evaluate(Candidate(labels={"nope": "empty_retrieval"}))
 
 
 @pytest.mark.parametrize("omitted", sorted(REQUIRED_CASE_IDS))
-def test_every_single_omission_fails_closed(omitted):
+def test_every_single_omission_fails_closed(omitted: str) -> None:
     labels = {key: value for key, value in GOOD.labels.items() if key != omitted}
     with pytest.raises(CoverageError, match="Missing case IDs"):
         evaluate(Candidate(labels=labels))
 
 
-@pytest.mark.parametrize("labels", [{}, {"clean": None}, {"clean": None, "injection": "prompt_injection"}])
-def test_empty_and_clean_subsets_fail_closed(labels):
+@pytest.mark.parametrize(
+    "labels",
+    [{}, {"clean": None}, {"clean": None, "injection": "prompt_injection"}],
+)
+def test_empty_and_clean_subsets_fail_closed(labels: dict[str, str | None]) -> None:
     with pytest.raises(CoverageError):
         evaluate(Candidate(labels=labels))
 
 
-def test_unknown_case_with_complete_known_set_fails_closed():
+def test_unknown_case_with_complete_known_set_fails_closed() -> None:
     with pytest.raises(KeyError):
         evaluate(Candidate(labels={**GOOD.labels, "unknown": None}))
 
@@ -44,9 +47,11 @@ def test_unknown_case_with_complete_known_set_fails_closed():
         Report(1.1, 5, REQUIRED_CASE_IDS),
     ],
 )
-def test_external_partial_or_invalid_reports_cannot_bypass_gate(report):
+def test_external_partial_or_invalid_reports_cannot_bypass_gate(report: Report) -> None:
     assert gate(report) is False
 
 
-def test_complete_external_report_can_be_scored():
+def test_complete_external_report_can_be_scored() -> None:
     assert gate(Report(1.0, 5, REQUIRED_CASE_IDS)) is True
+    assert gate(Report(True, 5, REQUIRED_CASE_IDS)) is False
+    assert gate(Report(float("nan"), 5, REQUIRED_CASE_IDS)) is False

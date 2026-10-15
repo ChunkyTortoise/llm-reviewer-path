@@ -19,7 +19,7 @@
 | Measured | Correct label set vs. mutated label set (injection case marked clean), scored against the classifier | **1.00 pass / 0.80 fail** | [`offline-receipt.md#L16-L17`](docs/offline-receipt.md#L16-L17) · [`test_eval_gate.py`](tests/test_eval_gate.py) |
 | Measured | Writes applied when an approved write is retried with the same token | **1** (retry returns `duplicate_retry_suppressed`) | [`test_hard_action.py#L94-L103`](tests/test_hard_action.py#L94-L103) |
 | Inventory | Failure-mode fixtures: empty retrieval, conflicting evidence, prompt injection, malformed structured output, clean | **5** | [`cases.py#L11-L29`](receipts/retrieval_failure_modes/cases.py#L11-L29) |
-| CI gate | Offline tests, run by CI on every push and pull request | **36** | [`ci.yml`](.github/workflows/ci.yml) · [`tests/`](tests/) · [`offline-receipt.md#L27`](docs/offline-receipt.md#L27) |
+| CI gate | Offline tests, run by CI on every push and pull request | **42** | [`ci.yml`](.github/workflows/ci.yml) · [`tests/`](tests/) · [`offline-receipt.md#L27`](docs/offline-receipt.md#L27) |
 
 This table is the one place each number is stated. The scope of each one is in [Methodology & limits](#methodology--limits).
 
@@ -44,12 +44,29 @@ python3 -m venv .venv
 .venv/bin/python -m receipts
 ```
 
-`pytest` should report every test passing (count in [Results](#results)). `python -m receipts` replays the eval scores and the approval sequence; its output must match the block in [docs/offline-receipt.md](docs/offline-receipt.md), and a test fails if it drifts.
+`pytest` should report every test passing (count in [Results](#results)). `python -m receipts` replays the eval scores and the approval sequence; its output must match the block below and in [docs/offline-receipt.md](docs/offline-receipt.md), and a test fails if it drifts.
+
+<details>
+<summary>Exact output of <code>uv run python -m receipts</code> (verified by <code>test_replay.py</code>)</summary>
+
+```text
+GOOD: score=1.00, n=5, gate=True
+MUTATION: score=0.80, n=5, gate=False
+read: {'ok': True, 'name': 'Ada', 'city': 'NY'}
+propose: preview {'city': 'LA'}
+without token: denied_without_approval
+model text: ApprovalError untrusted approval
+approved: execute_once
+retry: duplicate_retry_suppressed
+read after: {'ok': True, 'name': 'Ada', 'city': 'LA'}
+```
+
+</details>
 
 <p align="center">
   <img src="./docs/assets/terminal-demo.gif" width="720" alt="Terminal capture: uv sync --group dev, uv run pytest reporting 36 passed, and uv run python -m receipts printing GOOD score=1.00 gate=True, MUTATION score=0.80 gate=False, then the approval sequence: denied_without_approval, ApprovalError untrusted approval, execute_once, duplicate_retry_suppressed." />
 </p>
-<p align="center"><sub>Terminal capture of the quickstart commands above, recorded 2026-10-05 from this commit (<a href="docs/demo.tape">vhs tape</a> re-renders it; <a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
+<p align="center"><sub>Historical terminal capture, recorded 2026-10-05 with 36 tests. The current suite has 42 tests; replay output is unchanged (<a href="docs/demo.tape">vhs tape</a> re-renders the current commands; <a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
 
 Then read the code in this order:
 
@@ -87,11 +104,11 @@ sequenceDiagram
     Boundary-->>Caller: duplicate_retry_suppressed
 ```
 
-- **Reads are open, writes are previews.** `search_contact` needs no token. `propose_update` returns a preview and a `preview_id`; a preview is not an execution ([`loop.py`](receipts/hard_action/loop.py)).
+- **Reads are open, writes are previews.** `search_contact` needs no token. `propose_update` validates the target contact and returns a preview and a `preview_id`; a preview is not an execution ([`loop.py`](receipts/hard_action/loop.py)).
 - **Only an issued token executes.** `execute` without a token returns `denied_without_approval`. Model-written approval text raises `ApprovalError`. Tokens are compared with `secrets.compare_digest`.
 - **Approval is bound to what was approved.** The token is bound to a snapshot of the target query and patch, and incoming and returned patches are copied. If the stored proposal changes after approval, `execute` raises `ApprovalError` before any write.
-- **Retries are idempotent.** A used token cannot run the write again: a second `execute` returns `duplicate_retry_suppressed` and does not reapply the patch, even if the row changed in between. Every step is appended to an audit list.
-- **The eval gate fails closed.** `evaluate()` scores a candidate's labels against a mock `classify()` over the fixed fixtures ([`gate.py`](receipts/eval_gate/gate.py)). `gate()` requires the exact case IDs, the full count, and a score at the floor, including for externally constructed reports.
+- **Retries are idempotent.** A used token cannot run the write again: a second `execute` returns `duplicate_retry_suppressed` and does not reapply the patch, even if the row changed in between. Re-approving an already-executed preview raises `ApprovalError`. Every step is appended to an audit list.
+- **The eval gate fails closed.** `evaluate()` scores a candidate's labels against a mock `classify()` over the fixed fixtures ([`gate.py`](receipts/eval_gate/gate.py)). `gate()` requires the exact case IDs, the full count, and a numeric score at the floor, including for externally constructed reports.
 
 ## How it's evaluated
 
@@ -110,11 +127,11 @@ flowchart LR
 |---|---|---|
 | **Eval gate** | `GOOD` must pass and `MUTATION` must fail; the mutation is asserted, so a gate that stopped catching it would turn CI red | `uv run pytest tests/test_eval_gate.py` |
 | **Fail-closed coverage** | Every single omission, empty or partial label sets, unknown IDs, and malformed external reports are rejected before or at the gate | `uv run pytest tests/test_missing_fixture_fails_closed.py` |
-| **Approval boundary** | Denial, model-text rejection, copied patches, changed-proposal rejection, one execution, duplicate suppression | `uv run pytest tests/test_hard_action.py` |
-| **Failure-mode fixtures** | Mock `classify()` on each fixture, no network | `uv run pytest tests/test_retrieval_failure_modes.py` |
-| **Replay receipt** | `python -m receipts` output must equal the documented block and must not print tokens | `uv run pytest tests/test_replay.py` |
+| **Approval boundary** | Denial, model-text rejection, copied patches, changed-proposal rejection, one execution, duplicate suppression, re-approval rejection | `uv run pytest tests/test_hard_action.py` |
+| **Failure-mode fixtures** | Mock `classify()` on each fixture (including JSON-object parsing), no network | `uv run pytest tests/test_retrieval_failure_modes.py` |
+| **Replay & README invariants** | Replay must equal both documented blocks without tokens. Markdown and HTML link targets, heading anchors and line bounds are checked. Mermaid receives structural smoke checks, not syntax validation. | `uv run pytest tests/test_replay.py` |
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `uv sync --group dev` and `uv run pytest` on every push and pull request. Per-module commands are also in [docs/verification-commands.md](docs/verification-commands.md).
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs locked development dependencies, then runs strict mypy, Ruff and pytest on every push and pull request. Per-module commands are in [docs/verification-commands.md](docs/verification-commands.md).
 
 ## Design decisions
 
@@ -139,11 +156,11 @@ These patterns come from the full systems:
 
 **Scope**
 - Scope: a compact, offline code sample; the full systems are linked in [Design decisions](#design-decisions). Retrieval is mocked, so there is no RAG pipeline here. [DocExtract](https://github.com/ChunkyTortoise/docextract) is the production system for the eval and retrieval patterns above; this repo does not claim unlisted production behavior, client details, metrics or features, and no DocExtract number is a result reproduced here.
-- The local eval gate is a boolean over fixed fixtures. It is not branch protection on DocExtract, and it is a different demonstration from DocExtract's public red regression (PR #32; see Provenance dates below).
-- What is copied from the parent vs. added here: the parent contributes offline replay as a CI check, a public red regression, and the indirect prompt-injection threat model. Added here: the floor with exact fixture coverage, the asserted mutation, the local mock classifier and its fixtures, and the whole approval-token boundary.
+- The local eval gate is a boolean over fixed fixtures. It is not branch protection on DocExtract, and it is a different demonstration from DocExtract's recorded failing regression run (PR #32, closed unmerged; see Provenance dates below).
+- What is copied from the parent vs. added here: the parent contributes offline replay as a CI check, a recorded failing regression run, and the indirect prompt-injection threat model. Added here: the floor with exact fixture coverage, the asserted mutation, the local mock classifier and its fixtures, and the whole approval-token boundary.
 
 **Eval gate and fixtures**
-- The classification cases are fixed local fixtures and `classify()` is a deterministic mock using string checks. The mutation changes the expected injection label. This is not a model-quality benchmark or a live RAG run.
+- The classification cases are fixed local fixtures and `classify()` is a deterministic mock using string checks and stdlib JSON object validation. The mutation changes the expected injection label. This is not a model-quality benchmark or a live RAG run.
 - The local `retriever.py` is a mock, not DocExtract's injection guard.
 - Supplying a complete report to `gate()` does not prove an external evaluation was honest; the gate checks only the case IDs, count and score it is given.
 
@@ -158,7 +175,7 @@ These patterns come from the full systems:
 - The replay prints scores and the approval sequence without tokens or random preview IDs, so its output is stable; runtime varies.
 
 **Environment**
-- The commands match `pyproject.toml` (`requires-python`, dev group `pytest>=8`, `addopts = "-q"`, which hides the platform banner) and CI. `uv.lock` pins the pytest version; the pip route installs the latest pytest. There is no Makefile.
+- The commands match `pyproject.toml` (`requires-python`, dev group with pytest, mypy and Ruff, `addopts = "-q"`, which hides the platform banner) and CI. `uv.lock` pins development tools; the pip route installs the latest pytest and runs tests only. There is no Makefile.
 - The recorded 2026-10-01 verification in [docs/offline-receipt.md](docs/offline-receipt.md) reused an existing environment rather than a fresh `uv sync`; CI exercises the fresh-environment route.
 
 **Field-engineering scope note**
@@ -166,7 +183,7 @@ These patterns come from the full systems:
 - Its lead-volume figure is client-reported. Its test and workflow counts are historical figures copied from a non-public source. None of them is measured or reproduced here, which is why none appears in [Results](#results).
 
 **Provenance dates**
-- Parent links were checked against DocExtract `main` and the public GitHub account on 2026-09-23 and not re-checked since. Historical observations from that date: PR #32 was open and red, and DocExtract recorded a 2026-09-19 finding that its default branch was unprotected. This repo did not refresh those observations or change branch protection.
+- Rechecked on 2026-10-15. DocExtract PR #32 was closed without merge on 2026-10-02 at 6:48 PM PT (`2026-10-03T01:48:24Z`). DocExtract's README says that since 2026-10-03, branch protection on `main` has required the CI `test` check. The same README says the weighted replay is not a universal required merge check, and it records an earlier 2026-09-19 audit that found the default branch unprotected. This repo did not change DocExtract's branch protection. All parent links in [Design decisions](#design-decisions) were re-verified HTTP 200 on 2026-10-15.
 
 </details>
 
