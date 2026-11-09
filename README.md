@@ -2,7 +2,7 @@
 
 **A 10-minute runnable code sample: an eval gate fails when a label set disagrees with the classifier (a mutated label set marks a prompt injection as clean), a write runs only with an issued approval token, and a retried write is suppressed instead of applied twice.** Everything runs offline on local fixtures, with no API keys.
 
-In plain terms: it shows how to stop an AI agent from shipping a bad update, taking an action nobody approved, or doing the same action twice.
+In plain terms: a small offline teaching example of three checks for AI agents. It rejects a deliberately mislabeled test set, requires an issued token before a write, and suppresses a repeated write within one process.
 
 [![CI](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
