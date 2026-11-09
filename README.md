@@ -2,9 +2,13 @@
 
 **A 10-minute runnable code sample: an eval gate fails when a label set disagrees with the classifier (a mutated label set marks a prompt injection as clean), a write runs only with an issued approval token, and a retried write is suppressed instead of applied twice.** Everything runs offline on local fixtures, with no API keys.
 
+In plain terms: a small offline teaching example of three checks for AI agents. It rejects a deliberately mislabeled test set, requires an issued token before a write, and suppresses a repeated write within one process.
+
 [![CI](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/llm-reviewer-path/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+**Built by [Cayman Roden](https://github.com/ChunkyTortoise)**, AI engineer in Los Angeles. Available now for contract, part-time or full-time work, US remote. [Portfolio](https://chunkytortoise.github.io) · [LinkedIn](https://linkedin.com/in/caymanroden)
 
 <p align="center">
   <img src="./docs/assets/reviewer-receipt.svg" width="460" alt="Receipt figure: GOOD scores 1.00 and passes; MUTATION scores 0.80 and fails because it labels the injection case as clean; the approval sequence runs deny, execute once, duplicate suppressed. A separate panel labeled Internal-state test shows a changed proposal rejected; the replay does not run it." />
