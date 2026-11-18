@@ -24,7 +24,7 @@ retry: duplicate_retry_suppressed
 read after: {'ok': True, 'name': 'Ada', 'city': 'LA'}
 ```
 
-The current suite collects 64 tests, including JSON constant rejection and README link regressions. The 2026-10-01 verification ran `python -m pytest` (36 passed) and `python -m receipts` from the isolated worktree using the primary checkout's existing virtual environment. The same module commands also passed through `uv run --no-sync --offline` with `UV_PROJECT_ENVIRONMENT` pointing to that environment. A direct `pytest` executable in this reused environment imports the older primary checkout; use `python -m pytest` for this worktree verification. No packages were installed in that verification. CI now installs locked development dependencies and runs strict mypy, Ruff and pytest; the earlier local verification did not exercise that fresh-environment route.
+The current suite collects 89 tests, including JSON constant rejection and README link regressions. The 2026-10-01 verification ran `python -m pytest` (36 passed) and `python -m receipts` from the isolated worktree using the primary checkout's existing virtual environment. The same module commands also passed through `uv run --no-sync --offline` with `UV_PROJECT_ENVIRONMENT` pointing to that environment. A direct `pytest` executable in this reused environment imports the older primary checkout; use `python -m pytest` for this worktree verification. No packages were installed in that verification. CI now installs locked development dependencies and runs strict mypy, Ruff and pytest; the earlier local verification did not exercise that fresh-environment route.
 
 ## Limits observed by interaction
 

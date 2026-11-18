@@ -15,8 +15,8 @@ Every row was rerun offline on 2026-11-17 at commit `9fa2688` or later. No row u
 | Eval gate score, correct label set (floor [`THRESHOLD`](receipts/eval_gate/gate.py#L6) = 1.00) | **1.00, pass** | 5 cases | [`cases.py#L11-L29`](receipts/retrieval_failure_modes/cases.py#L11-L29) (empty retrieval, conflicting evidence, prompt injection, malformed JSON, clean) | none, mock `classify()` | Mutated label set (injection marked clean): 0.80, fail | `uv run python -m receipts` |
 | Writes applied when an approved write is retried with the same token | **1** (retry returns `duplicate_retry_suppressed`) | 2 `execute` calls | one in-memory contact | none | Call without a token: 0 writes (`denied_without_approval`) | `uv run pytest tests/test_hard_action.py` |
 | Patch shapes that could change an approved write, now rejected before preview | **5 of 5** | 5 shapes | [`test_hard_action.py`](tests/test_hard_action.py): nested list, nested dict, non-str key, `str` subclass, stateful `Mapping` | none | Before `5ad8ec1`: nested list and dict values were shallow-copied and a post-approval change reached the write | `uv run pytest tests/test_hard_action.py` |
-| Prompt-injection detector recall | **2 of 9** injections caught, 1 of 2 benign texts flagged | 11 texts | [`injection_corpus.json`](tests/fixtures/injection_corpus.json) | none, two-substring match | none (first measurement) | `uv run python -m receipts.retrieval_failure_modes.injection_corpus` |
-| Offline test suite, run by CI on every push and pull request | **56 pass, 8 strict `xfail`** (the detector misses) | 64 tests | [`tests/`](tests/) | none | not applicable | `uv run pytest` |
+| Prompt-injection detector recall | **3 of 21** injections caught, 3 of 5 benign texts flagged | 26 texts | [`injection_corpus.json`](tests/fixtures/injection_corpus.json) | none, two-substring match | First 11 texts alone: 2 of 9 caught, 1 of 2 benign flagged | `uv run python -m receipts.retrieval_failure_modes.injection_corpus` |
+| Offline test suite, run by CI on every push and pull request | **68 pass, 21 strict `xfail`** (the detector misses and false positives) | 89 tests | [`tests/`](tests/) | none | not applicable | `uv run pytest` |
 
 The scope of each number is in [Methodology & limits](#methodology--limits).
 
@@ -37,7 +37,7 @@ python3 -m venv .venv && .venv/bin/python -m pip install pytest
 .venv/bin/python -m pytest && .venv/bin/python -m receipts
 ```
 
-`pytest` should report 56 passed and 8 xfailed. `python -m receipts` replays the eval scores and the approval sequence; its output must match the block below and in [docs/offline-receipt.md](docs/offline-receipt.md), and a test fails if it drifts.
+`pytest` should report 68 passed and 21 xfailed. `python -m receipts` replays the eval scores and the approval sequence; its output must match the block below and in [docs/offline-receipt.md](docs/offline-receipt.md), and a test fails if it drifts.
 
 <details>
 <summary>Exact output of <code>uv run python -m receipts</code> (verified by <code>test_replay.py</code>)</summary>
@@ -57,7 +57,7 @@ read after: {'ok': True, 'name': 'Ada', 'city': 'LA'}
 </details>
 
 <p align="center">
-  <img src="./docs/assets/terminal-demo.gif" width="720" alt="Terminal capture: uv run pytest reporting 56 passed and 8 xfailed, then uv run python -m receipts printing GOOD score=1.00 gate=True, MUTATION score=0.80 gate=False, then the approval sequence: denied_without_approval, ApprovalError untrusted approval, execute_once, duplicate_retry_suppressed." />
+  <img src="./docs/assets/terminal-demo.gif" width="720" alt="Terminal capture: uv run pytest reporting 68 passed and 21 xfailed, then uv run python -m receipts printing GOOD score=1.00 gate=True, MUTATION score=0.80 gate=False, then the approval sequence: denied_without_approval, ApprovalError untrusted approval, execute_once, duplicate_retry_suppressed." />
 </p>
 <p align="center"><sub>Terminal capture recorded 2026-11-17 with <a href="docs/demo.tape">docs/demo.tape</a> (<a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
 
@@ -102,10 +102,10 @@ sequenceDiagram
     Boundary-->>Caller: duplicate_retry_suppressed
 ```
 
-- **Reads are open, writes are previews.** `search_contact` needs no token. `propose_update` validates the target contact and returns a preview and a `preview_id`; a preview is not an execution ([`loop.py`](receipts/hard_action/loop.py)).
+- **Reads are open, writes are previews.** `search_contact` needs no token. `propose_update` validates the target contact and returns a preview that names the target, the patch and a `preview_id`; a preview is not an execution ([`loop.py`](receipts/hard_action/loop.py)).
 - **Only an issued token executes.** `execute` without a token returns `denied_without_approval`. Model-written approval text raises `ApprovalError`. Tokens are compared as UTF-8 bytes with `secrets.compare_digest`, so non-ASCII text also raises `ApprovalError`.
-- **Approval is bound to what was approved.** The token is bound to a snapshot of the target query and patch. A patch must be a plain `dict` of plain `str` keys and values (anything else raises `TypeError`), and it is copied once, so neither the caller's dict nor the returned preview shares an object with the stored proposal. If the stored proposal changes after approval, `execute` raises `ApprovalError` before any write.
-- **Retries are idempotent.** A used token cannot run the write again: a second `execute` returns `duplicate_retry_suppressed` and does not reapply the patch, even if the row changed in between. Re-approving an already-executed preview raises `ApprovalError`. Each read, proposal, approval and `execute` outcome, including a rejected approval (`denied_untrusted_approval`), is appended to an audit list; inputs rejected with `KeyError` or `TypeError` before a preview exists are not.
+- **Approval is bound to what was approved.** The token is bound to a snapshot of the target query and patch. A patch must be a plain `dict` of plain `str` keys and values (anything else raises `TypeError`), its keys must be fields the target contact already has (anything else raises `KeyError`), and it is copied once, so neither the caller's dict nor the returned preview shares an object with the stored proposal. If the stored proposal changes after approval, `execute` raises `ApprovalError` before any write.
+- **Retries are idempotent.** A used token cannot run the write again: a second `execute` returns `duplicate_retry_suppressed` and does not reapply the patch, even if the row changed in between. Re-approving an already-executed preview raises `ApprovalError`. Each read, proposal, approval and `execute` outcome, including a rejected approval (`denied_untrusted_approval`), is appended to an audit list; inputs rejected with `KeyError` or `TypeError` before a preview exists, and `execute` calls with a preview id that was never issued (`KeyError`), are not.
 - **The eval gate fails closed.** `evaluate()` scores a candidate's labels against a mock `classify()` over the fixed fixtures ([`gate.py`](receipts/eval_gate/gate.py)). `gate()` requires the exact case IDs, the full count, and a numeric score at the floor, including for externally constructed reports.
 
 ## How it's evaluated
@@ -123,18 +123,18 @@ flowchart LR
 
 | Signal | What runs | Command |
 |---|---|---|
-| **Eval gate** | `GOOD` must pass and `MUTATION` must fail; the mutation is asserted, so a gate that stopped catching it would turn CI red | `uv run pytest tests/test_eval_gate.py` |
+| **Eval gate** | `GOOD` must pass and `MUTATION` must fail; the mutation is asserted, so a gate that stopped catching it would turn CI red. A second test disables the classifier's injection check and asserts `GOOD` then fails | `uv run pytest tests/test_eval_gate.py` |
 | **Fail-closed coverage** | Every single omission, empty or partial label sets, unknown IDs, and malformed external reports are rejected before or at the gate | `uv run pytest tests/test_missing_fixture_fails_closed.py` |
-| **Approval boundary** | Denial, model-text rejection, copied patches, changed-proposal rejection, one execution, duplicate suppression, re-approval rejection | `uv run pytest tests/test_hard_action.py` |
+| **Approval boundary** | Denial, model-text rejection, copied patches, patch type and key checks, changed-proposal rejection, one execution, duplicate suppression, re-approval rejection, unknown preview ids | `uv run pytest tests/test_hard_action.py` |
 | **Failure-mode fixtures** | Mock `classify()` on each fixture (including JSON-object parsing), no network | `uv run pytest tests/test_retrieval_failure_modes.py` |
-| **Injection corpus** | Real detector on 11 labeled texts; the 8 known gaps are strict `xfail`, and the README table below must equal the generated report | `uv run pytest tests/test_injection_corpus.py` |
+| **Injection corpus** | Real detector on 26 labeled texts; the 21 known gaps are strict `xfail`, and the README table below must equal the generated report | `uv run pytest tests/test_injection_corpus.py` |
 | **Replay & README invariants** | Replay must equal both documented blocks without tokens. Markdown and HTML link targets, heading anchors and line bounds are checked. Mermaid receives structural smoke checks, not syntax validation. | `uv run pytest tests/test_replay.py` |
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs locked development dependencies, then runs strict mypy, Ruff and pytest on every push and pull request. Per-module commands are in [docs/verification-commands.md](docs/verification-commands.md).
 
 ### Injection detector corpus
 
-The prompt-injection check in [`retriever.py`](receipts/retrieval_failure_modes/retriever.py) is a two-substring match. [`injection_corpus.json`](tests/fixtures/injection_corpus.json) holds 11 labeled texts, with labels set by what the text is, not by what the detector does. [`test_injection_corpus.py`](tests/test_injection_corpus.py) runs each one through the real detector; known misses are strict `xfail`, so CI stays green, the gap is recorded, and a detector fix fails the build until the case is un-marked. The table below is the output of `uv run python -m receipts.retrieval_failure_modes.injection_corpus`.
+The prompt-injection check in [`retriever.py`](receipts/retrieval_failure_modes/retriever.py) is a two-substring match. [`injection_corpus.json`](tests/fixtures/injection_corpus.json) holds 26 labeled texts (11 from a first pass, 15 harder ones added the same day: tool-result injection, homoglyphs, layered encoding, forged approval-token claims, and 3 benign hard negatives), with labels set by what the text is, not by what the detector does. [`test_injection_corpus.py`](tests/test_injection_corpus.py) runs each one through the real detector; known misses are strict `xfail`, so CI stays green, the gap is recorded, and a detector fix fails the build until the case is un-marked. The table below is the output of `uv run python -m receipts.retrieval_failure_modes.injection_corpus`.
 
 | Case | Technique | Label | Detector |
 |---|---|---|---|
@@ -149,8 +149,23 @@ The prompt-injection check in [`retriever.py`](receipts/retrieval_failure_modes/
 | `non-english` | non-English phrasing (Spanish) | injection | missed |
 | `benign-security-note` | benign: security note quoting an attack phrase | benign | false positive |
 | `benign-eval-mention` | benign: mentions injection testing | benign | correct (not flagged) |
+| `tool-result-json` | tool-result injection inside a JSON field | injection | missed |
+| `multi-turn-setup` | multi-turn setup (stage 1 plants a trigger word) | injection | missed |
+| `homoglyph-cyrillic` | homoglyph substitution (Cyrillic o, U+043E) | injection | missed |
+| `dotted-capital-i` | case folding trick (Turkish dotted capital I, U+0130) | injection | missed |
+| `instruction-splitting` | instruction split across two fields with a join step | injection | missed |
+| `layered-encoding` | encoding layers (ROT13 inside base64) | injection | missed |
+| `unicode-tag-smuggling` | invisible Unicode tag characters (U+E0000 block) | injection | missed |
+| `approval-token-claim` | token claim trick (asserts an approval token was already issued) | injection | missed |
+| `approval-token-claim-direct` | token claim trick with a literal override phrase | injection | caught |
+| `scope-escalation-claim` | scope escalation claim (asserts raised permissions) | injection | missed |
+| `markdown-image-exfil` | tool abuse: data exfiltration through a rendered image URL | injection | missed |
+| `schema-valid-patch` | schema-valid but malicious argument (instruction inside a patch value) | injection | missed |
+| `benign-changelog` | benign: changelog line describing parser behaviour | benign | false positive |
+| `benign-ignore-previously` | benign: ordinary sentence where the substring is a prefix of another word | benign | false positive |
+| `benign-prior-instructions` | benign: remittance note that mentions prior instructions | benign | correct (not flagged) |
 
-Caught 2 of 9 injections, 1 false positive.
+Caught 3 of 21 injections, 3 false positives.
 
 ## Decisions, failures, limits
 
@@ -161,7 +176,7 @@ Caught 2 of 9 injections, 1 false positive.
 - **Model text is never an approval.** Approval is a token minted by `issue_approval` and compared in constant time, not a string the model can write ([`loop.py`](receipts/hard_action/loop.py)).
 - **Bind the token to a snapshot.** Approving a preview approves that query and patch only; any later change is rejected before the write.
 - **Reject odd patch types instead of deep-copying them.** `copy.deepcopy` would also close the nested-value hole, but a `str` subclass with a false `__repr__` or a `Mapping` that answers differently per read would still show the approver one value and store another. Accepting only a plain `dict` of plain `str` closes all of these with one type check ([`loop.py`](receipts/hard_action/loop.py)).
-- **Keep detector misses as strict `xfail`, not deleted cases.** The corpus records 7 missed injections and 1 false positive in CI; a detector fix turns the build red until the case is un-marked, so the table cannot silently go stale.
+- **Keep detector misses as strict `xfail`, not deleted cases.** The corpus records 18 missed injections and 3 false positives in CI; a detector fix turns the build red until the case is un-marked, so the table cannot silently go stale.
 
 ### Failures found
 
@@ -171,13 +186,15 @@ An adversarial pass on 2026-11-17 (probes using only the four public methods, no
 2. **Rejected approvals left no audit entry.** A forged or wrong token raised `ApprovalError` without appending anything, so the README claim that every step is audited was false.
 3. **Non-ASCII approval text raised `TypeError`.** `secrets.compare_digest` refuses non-ASCII `str`, so `"tok_é"` raised the wrong exception. It was still refused, but callers catching `ApprovalError` would miss it.
 
-The injection detector is a known, unfixed failure: it catches 2 of 9 labeled injections (table above). It exists to show how gaps are recorded, not as a defense.
+A second pass the same evening closed two smaller gaps in `338b105`, also with tests: a patch could add a new field such as `is_admin` or overwrite the `ok` key of the read result, and `execute` with a made-up preview id and no token wrote that id into the audit list as a denial. It also added [`test_gate_fails_when_the_classifier_stops_detecting_injection`](tests/test_eval_gate.py), which disables the injection check and asserts the gate closes on the correct label set (score 0.80).
+
+The injection detector is a known, unfixed failure: it catches 3 of 21 labeled injections and flags 3 of 5 benign texts (table above). It exists to show how gaps are recorded, not as a defense.
 
 ### Limits
 
 - **No model.** Nothing here calls an LLM. `classify()` takes a case ID and matches literal strings, so the eval gate scores label sets against a deterministic mock; the labels are what is under test, not a model.
 - **Single process.** Any caller in the same process can call `issue_approval`, so the approval boundary assumes the approver is a separate, trusted path. Tokens are random strings, not signatures, and do not expire. State is an in-memory dict; there is no durable storage or concurrency control.
-- **No field allowlist on patches.** An approved patch can add any `str` key, for example `is_admin`. Approval binds the exact patch, so the approver sees the key, but nothing restricts which keys exist.
+- **Patch keys are checked, values are not.** A patch can only name fields the target contact already has (`name`, `city`), so it cannot add `is_admin` or shadow the `ok` key of the read result. Any `str` value is accepted for those fields, and there is no per-caller rule about who may change which field.
 - **One interpreter in CI.** CI runs on whatever Python `uv` selects on `ubuntu-latest`; 3.10 is the declared floor (mypy and Ruff target it) but no 3.10 job runs.
 
 Full scope notes are in [Methodology & limits](#methodology--limits).
@@ -218,7 +235,7 @@ Full scope notes are in [Methodology & limits](#methodology--limits).
 
 **Environment**
 - The commands match `pyproject.toml` (`requires-python`, dev group with pytest, mypy and Ruff, `addopts = "-q"`, which hides the platform banner) and CI. `uv.lock` pins development tools; the pip route installs the latest pytest and runs tests only. There is no Makefile.
-- The three Quickstart commands were run on 2026-11-17 in a fresh `git clone` of this branch under `/tmp` with uv 0.11.29 on macOS: `uv run` installed 10 packages, then printed `56 passed, 8 xfailed` and the replay block above. Linux runs in CI only.
+- The three Quickstart commands were run on 2026-11-17 in a fresh `git clone` of this branch under `/tmp` with uv 0.11.29 on macOS: `uv run` installed 10 packages, then printed `68 passed, 21 xfailed` and the replay block above. Linux runs in CI only.
 - The recorded 2026-10-01 verification in [docs/offline-receipt.md](docs/offline-receipt.md) reused an existing environment rather than a fresh `uv sync`; CI exercises the fresh-environment route.
 
 **Field-engineering scope note**

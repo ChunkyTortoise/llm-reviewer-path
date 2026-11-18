@@ -2,13 +2,13 @@
 
 Run from the repository root after the README setup. The README uses shorter pytest selectors so commands fit on a phone. These file-path commands preserve the exact module mapping.
 
-Evaluation and coverage (19 tests):
+Evaluation and coverage (20 tests):
 
 ```bash
 uv run pytest tests/test_eval_gate.py tests/test_missing_fixture_fails_closed.py
 ```
 
-Approval (18 tests):
+Approval (24 tests):
 
 ```bash
 uv run pytest tests/test_hard_action.py
@@ -20,7 +20,7 @@ Retrieval (9 tests):
 uv run pytest tests/test_retrieval_failure_modes.py
 ```
 
-Injection corpus (14 tests, 8 of them strict xfail for known detector gaps):
+Injection corpus (32 tests, 21 of them strict xfail for known detector gaps):
 
 ```bash
 uv run pytest tests/test_injection_corpus.py
@@ -41,4 +41,4 @@ uv run mypy --strict receipts tests
 uv run ruff check receipts tests
 ```
 
-The full suite currently collects 64 tests (56 pass, 8 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The terminal GIF was re-recorded on 2026-11-17 and shows the same 56 passed, 8 xfailed.
+The full suite currently collects 89 tests (68 pass, 21 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The terminal GIF was re-recorded on 2026-11-17 and shows the same 68 passed, 21 xfailed.
