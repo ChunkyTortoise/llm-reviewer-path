@@ -144,3 +144,27 @@ def test_untrusted_approval_is_audited_and_raises_approval_error(approval: str) 
         "preview_id": preview["preview_id"],
     }
     assert loop.search_contact("ada")["city"] == "NY"
+
+
+def test_stateful_mapping_patch_is_rejected() -> None:
+    # A Mapping that answers differently on each read could show the approver one
+    # patch while another is stored; only a plain dict is accepted.
+    from collections.abc import Iterator, Mapping
+
+    class Shifty(Mapping[str, str]):
+        def __init__(self) -> None:
+            self.reads = 0
+
+        def __getitem__(self, key: str) -> str:
+            self.reads += 1
+            return "LA" if self.reads > 1 else "UNREVIEWED"
+
+        def __iter__(self) -> Iterator[str]:
+            return iter(["city"])
+
+        def __len__(self) -> int:
+            return 1
+
+    loop = ActionLoop()
+    with pytest.raises(TypeError):
+        loop.propose_update("ada", Shifty())  # type: ignore[arg-type]
