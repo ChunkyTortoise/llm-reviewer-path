@@ -43,10 +43,20 @@ class ActionLoop:
         if normalized not in self._contacts:
             raise KeyError(query)
         stored = _validated_patch(patch)
+        for key in stored:
+            # Only fields the target contact already has can be patched, so a
+            # patch cannot add a field or shadow the "ok" key of the read envelope.
+            if key not in self._contacts[normalized]:
+                raise KeyError(key)
         preview_id = secrets.token_hex(8)
         self._previews[preview_id] = {"query": normalized, "patch": stored}
         self.audit.append({"kind": "propose_update", "preview_id": preview_id})
-        return {"status": "preview", "preview_id": preview_id, "patch": dict(stored)}
+        return {
+            "status": "preview",
+            "preview_id": preview_id,
+            "query": normalized,
+            "patch": dict(stored),
+        }
 
     def issue_approval(self, preview_id: str) -> str:
         if preview_id in self._executed:
@@ -62,6 +72,9 @@ class ActionLoop:
         return token
 
     def execute(self, preview_id: str, approval: str | None) -> dict[str, Any]:
+        if preview_id not in self._previews:
+            # An id that propose_update never returned is not written to the audit list.
+            raise KeyError(preview_id)
         if approval is None:
             self.audit.append(
                 {"kind": "denied_without_approval", "preview_id": preview_id}

@@ -168,3 +168,31 @@ def test_stateful_mapping_patch_is_rejected() -> None:
     loop = ActionLoop()
     with pytest.raises(TypeError):
         loop.propose_update("ada", Shifty())  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("key", ["is_admin", "ok", "City"])
+def test_patch_key_outside_contact_fields_is_rejected(key: str) -> None:
+    # "ok" would shadow the read envelope and "is_admin" would add a field the
+    # contact never had; only fields the target contact already has can be patched.
+    loop = ActionLoop()
+    before = loop.search_contact("ada")
+    with pytest.raises(KeyError):
+        loop.propose_update("ada", {"city": "LA", key: "true"})
+    assert loop.search_contact("ada") == before
+    assert [e["kind"] for e in loop.audit] == ["search_contact", "search_contact"]
+
+
+def test_preview_names_the_target_contact() -> None:
+    loop = ActionLoop()
+    preview = loop.propose_update("ADA", {"city": "LA"})
+    assert preview["query"] == "ada"
+
+
+@pytest.mark.parametrize("approval", [None, "tok_0000000000000000"])
+def test_execute_on_unknown_preview_raises_and_is_not_audited(approval: str | None) -> None:
+    # A caller-supplied id that never came from propose_update must not be
+    # written into the audit list as if a preview had existed.
+    loop = ActionLoop()
+    with pytest.raises(KeyError):
+        loop.execute("no-such-preview", approval)
+    assert loop.audit == []
