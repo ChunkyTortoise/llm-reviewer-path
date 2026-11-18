@@ -196,3 +196,22 @@ def test_execute_on_unknown_preview_raises_and_is_not_audited(approval: str | No
     with pytest.raises(KeyError):
         loop.execute("no-such-preview", approval)
     assert loop.audit == []
+
+
+def test_audit_record_cannot_be_rewritten_or_truncated_from_outside() -> None:
+    # Reading the audit returns copies, so a caller cannot erase a denial or
+    # edit an entry after the fact; only the loop's own methods append.
+    loop = ActionLoop()
+    preview = loop.propose_update("ada", {"city": "LA"})
+    loop.execute(preview["preview_id"], None)
+    expected = [
+        {"kind": "propose_update", "preview_id": preview["preview_id"]},
+        {"kind": "denied_without_approval", "preview_id": preview["preview_id"]},
+    ]
+    view = loop.audit
+    view.clear()
+    loop.audit.append({"kind": "forged"})
+    loop.audit[-1]["kind"] = "execute_once"
+    with pytest.raises(AttributeError):
+        loop.audit = []  # type: ignore[misc]
+    assert loop.audit == expected

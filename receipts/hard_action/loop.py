@@ -31,11 +31,16 @@ class ActionLoop:
         self._approvals: dict[str, str] = {}
         self._approved_specs: dict[str, dict[str, Any]] = {}
         self._executed: set[str] = set()
-        self.audit: list[dict[str, str]] = []
+        self._audit: list[dict[str, str]] = []
+
+    @property
+    def audit(self) -> list[dict[str, str]]:
+        """Copy of the audit record; changing the copy does not change the record."""
+        return [dict(entry) for entry in self._audit]
 
     def search_contact(self, query: str) -> dict[str, Any]:
         row = self._contacts[query.lower()]
-        self.audit.append({"kind": "search_contact", "query": query})
+        self._audit.append({"kind": "search_contact", "query": query})
         return {"ok": True, **row}
 
     def propose_update(self, query: str, patch: dict[str, str]) -> dict[str, Any]:
@@ -50,7 +55,7 @@ class ActionLoop:
                 raise KeyError(key)
         preview_id = secrets.token_hex(8)
         self._previews[preview_id] = {"query": normalized, "patch": stored}
-        self.audit.append({"kind": "propose_update", "preview_id": preview_id})
+        self._audit.append({"kind": "propose_update", "preview_id": preview_id})
         return {
             "status": "preview",
             "preview_id": preview_id,
@@ -68,7 +73,7 @@ class ActionLoop:
         }
         token = "tok_" + secrets.token_hex(8)
         self._approvals[preview_id] = token
-        self.audit.append({"kind": "issued_approval", "preview_id": preview_id})
+        self._audit.append({"kind": "issued_approval", "preview_id": preview_id})
         return token
 
     def execute(self, preview_id: str, approval: str | None) -> dict[str, Any]:
@@ -76,7 +81,7 @@ class ActionLoop:
             # An id that propose_update never returned is not written to the audit list.
             raise KeyError(preview_id)
         if approval is None:
-            self.audit.append(
+            self._audit.append(
                 {"kind": "denied_without_approval", "preview_id": preview_id}
             )
             return {"status": "denied_without_approval"}
@@ -88,22 +93,22 @@ class ActionLoop:
                 approval.encode("utf-8", "surrogatepass"), expected.encode("utf-8")
             )
         ):
-            self.audit.append(
+            self._audit.append(
                 {"kind": "denied_untrusted_approval", "preview_id": preview_id}
             )
             raise ApprovalError("untrusted approval")
         spec = self._previews[preview_id]
         if spec != self._approved_specs[preview_id]:
-            self.audit.append(
+            self._audit.append(
                 {"kind": "denied_changed_proposal", "preview_id": preview_id}
             )
             raise ApprovalError("proposal changed after approval")
         if preview_id in self._executed:
-            self.audit.append(
+            self._audit.append(
                 {"kind": "duplicate_retry_suppressed", "preview_id": preview_id}
             )
             return {"status": "duplicate_retry_suppressed"}
         self._contacts[spec["query"]].update(spec["patch"])
         self._executed.add(preview_id)
-        self.audit.append({"kind": "execute_once", "preview_id": preview_id})
+        self._audit.append({"kind": "execute_once", "preview_id": preview_id})
         return {"status": "execute_once"}
