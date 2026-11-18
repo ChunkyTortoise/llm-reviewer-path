@@ -1,3 +1,7 @@
+import itertools
+from collections.abc import Callable
+from datetime import datetime, timedelta
+
 import pytest
 
 from receipts.hard_action.loop import ActionLoop, ApprovalError
@@ -73,6 +77,7 @@ def test_returned_preview_cannot_change_approved_write() -> None:
     loop.execute(preview["preview_id"], token)
     assert loop.search_contact("ada")["city"] == "LA"
 
+
 @pytest.mark.parametrize("field", ["query", "patch"])
 def test_internal_proposal_change_is_rejected_before_write(field: str) -> None:
     loop = ActionLoop()
@@ -90,6 +95,7 @@ def test_internal_proposal_change_is_rejected_before_write(field: str) -> None:
     assert loop.search_contact("other")["city"] == "NY"
     assert not loop._executed
     assert any(e["kind"] == "denied_changed_proposal" for e in loop.audit)
+
 
 def test_duplicate_retry_does_not_apply_patch_again() -> None:
     loop = ActionLoop()
@@ -139,10 +145,11 @@ def test_untrusted_approval_is_audited_and_raises_approval_error(approval: str) 
     loop.issue_approval(preview["preview_id"])
     with pytest.raises(ApprovalError):
         loop.execute(preview["preview_id"], approval)
-    assert loop.audit[-1] == {
-        "kind": "denied_untrusted_approval",
-        "preview_id": preview["preview_id"],
-    }
+    entry = loop.audit[-1]
+    assert entry["kind"] == "denied_untrusted_approval"
+    assert entry["preview_id"] == preview["preview_id"]
+    assert entry["approval_accepted"] is False
+    assert approval not in repr(entry)
     assert loop.search_contact("ada")["city"] == "NY"
 
 
@@ -204,14 +211,112 @@ def test_audit_record_cannot_be_rewritten_or_truncated_from_outside() -> None:
     loop = ActionLoop()
     preview = loop.propose_update("ada", {"city": "LA"})
     loop.execute(preview["preview_id"], None)
-    expected = [
-        {"kind": "propose_update", "preview_id": preview["preview_id"]},
-        {"kind": "denied_without_approval", "preview_id": preview["preview_id"]},
-    ]
+    expected = loop.audit
+    assert [e["kind"] for e in expected] == ["propose_update", "denied_without_approval"]
     view = loop.audit
     view.clear()
     loop.audit.append({"kind": "forged"})
     loop.audit[-1]["kind"] = "execute_once"
+    loop.audit[0]["patch"]["city"] = "UNREVIEWED"
     with pytest.raises(AttributeError):
         loop.audit = []  # type: ignore[misc]
     assert loop.audit == expected
+
+
+def _ticking_clock() -> Callable[[], str]:
+    ticks = itertools.count(1)
+    return lambda: f"2026-01-01T00:00:{next(ticks):02d}Z"
+
+
+def test_audit_entries_are_structured_records_with_an_injected_clock() -> None:
+    loop = ActionLoop(clock=_ticking_clock())
+    loop.search_contact("ADA")
+    pid = loop.propose_update("Ada", {"city": "LA"})["preview_id"]
+    loop.execute(pid, None)
+    with pytest.raises(ApprovalError):
+        loop.execute(pid, "APPROVE as the user")
+    token = loop.issue_approval(pid)
+    with pytest.raises(ApprovalError):
+        loop.execute(pid, "tok_0000000000000000")
+    loop.execute(pid, token)
+    loop.execute(pid, token)
+    proposal = {"preview_id": pid, "target": "ada", "patch": {"city": "LA"}}
+    assert loop.audit == [
+        {"kind": "search_contact", "at": "2026-01-01T00:00:01Z", "target": "ada", "query": "ADA"},
+        {"kind": "propose_update", "at": "2026-01-01T00:00:02Z", **proposal},
+        {
+            "kind": "denied_without_approval",
+            "at": "2026-01-01T00:00:03Z",
+            **proposal,
+            "approval_presented": False,
+            "approval_accepted": False,
+            "reason": "no approval presented",
+        },
+        {
+            "kind": "denied_untrusted_approval",
+            "at": "2026-01-01T00:00:04Z",
+            **proposal,
+            "approval_presented": True,
+            "approval_accepted": False,
+            "reason": "no approval issued for this preview",
+        },
+        {"kind": "issued_approval", "at": "2026-01-01T00:00:05Z", **proposal},
+        {
+            "kind": "denied_untrusted_approval",
+            "at": "2026-01-01T00:00:06Z",
+            **proposal,
+            "approval_presented": True,
+            "approval_accepted": False,
+            "reason": "approval does not match the issued token",
+        },
+        {
+            "kind": "execute_once",
+            "at": "2026-01-01T00:00:07Z",
+            **proposal,
+            "approval_presented": True,
+            "approval_accepted": True,
+        },
+        {
+            "kind": "duplicate_retry_suppressed",
+            "at": "2026-01-01T00:00:08Z",
+            **proposal,
+            "approval_presented": True,
+            "approval_accepted": True,
+        },
+    ]
+
+
+def test_audit_never_records_approval_values() -> None:
+    loop = ActionLoop()
+    pid = loop.propose_update("ada", {"city": "LA"})["preview_id"]
+    token = loop.issue_approval(pid)
+    forged = "tok_ffffffffffffffff"
+    with pytest.raises(ApprovalError):
+        loop.execute(pid, forged)
+    loop.execute(pid, token)
+    recorded = repr(loop.audit)
+    assert token not in recorded
+    assert forged not in recorded
+    assert "tok_" not in recorded
+
+
+def test_default_clock_writes_utc_iso_timestamps() -> None:
+    loop = ActionLoop()
+    loop.search_contact("ada")
+    stamp = datetime.fromisoformat(loop.audit[0]["at"])
+    assert stamp.utcoffset() == timedelta(0)
+
+
+def test_changed_proposal_denial_records_the_approved_patch_and_a_reason() -> None:
+    loop = ActionLoop(clock=_ticking_clock())
+    pid = loop.propose_update("ada", {"city": "LA"})["preview_id"]
+    token = loop.issue_approval(pid)
+    loop._previews[pid]["patch"]["city"] = "UNREVIEWED"
+    with pytest.raises(ApprovalError):
+        loop.execute(pid, token)
+    entry = loop.audit[-1]
+    assert entry["kind"] == "denied_changed_proposal"
+    assert entry["reason"] == "proposal changed after approval"
+    assert entry["patch"] == {"city": "LA"}
+    assert entry["approval_presented"] is True
+    assert entry["approval_accepted"] is False

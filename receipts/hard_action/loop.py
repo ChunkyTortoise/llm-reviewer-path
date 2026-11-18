@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import copy
 import secrets
+from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -24,23 +27,53 @@ def _validated_patch(patch: object) -> dict[str, str]:
     return copied
 
 
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 class ActionLoop:
-    def __init__(self) -> None:
+    def __init__(self, clock: Callable[[], str] = _utc_now) -> None:
         self._contacts = {"ada": {"name": "Ada", "city": "NY"}}
         self._previews: dict[str, dict[str, Any]] = {}
         self._approvals: dict[str, str] = {}
         self._approved_specs: dict[str, dict[str, Any]] = {}
         self._executed: set[str] = set()
-        self._audit: list[dict[str, str]] = []
+        self._clock = clock
+        self._audit: list[dict[str, Any]] = []
 
     @property
-    def audit(self) -> list[dict[str, str]]:
+    def audit(self) -> list[dict[str, Any]]:
         """Copy of the audit record; changing the copy does not change the record."""
-        return [dict(entry) for entry in self._audit]
+        return copy.deepcopy(self._audit)
+
+    def _record(self, kind: str, **fields: Any) -> None:
+        self._audit.append({"kind": kind, "at": self._clock(), **fields})
+
+    def _record_proposal(self, kind: str, preview_id: str, **fields: Any) -> None:
+        # Execute events describe the approved snapshot when one exists, so the
+        # record shows what the approver saw even if the stored proposal changed.
+        spec = self._approved_specs.get(preview_id, self._previews[preview_id])
+        self._record(
+            kind,
+            preview_id=preview_id,
+            target=spec["query"],
+            patch=dict(spec["patch"]),
+            **fields,
+        )
+
+    def _record_execute(
+        self, kind: str, preview_id: str, *, presented: bool, accepted: bool, reason: str = ""
+    ) -> None:
+        # Approval values are never recorded, only whether one was presented and accepted.
+        fields: dict[str, Any] = {"approval_presented": presented, "approval_accepted": accepted}
+        if reason:
+            fields["reason"] = reason
+        self._record_proposal(kind, preview_id, **fields)
 
     def search_contact(self, query: str) -> dict[str, Any]:
-        row = self._contacts[query.lower()]
-        self._audit.append({"kind": "search_contact", "query": query})
+        normalized = query.lower()
+        row = self._contacts[normalized]
+        self._record("search_contact", target=normalized, query=query)
         return {"ok": True, **row}
 
     def propose_update(self, query: str, patch: dict[str, str]) -> dict[str, Any]:
@@ -55,7 +88,7 @@ class ActionLoop:
                 raise KeyError(key)
         preview_id = secrets.token_hex(8)
         self._previews[preview_id] = {"query": normalized, "patch": stored}
-        self._audit.append({"kind": "propose_update", "preview_id": preview_id})
+        self._record_proposal("propose_update", preview_id)
         return {
             "status": "preview",
             "preview_id": preview_id,
@@ -73,7 +106,7 @@ class ActionLoop:
         }
         token = "tok_" + secrets.token_hex(8)
         self._approvals[preview_id] = token
-        self._audit.append({"kind": "issued_approval", "preview_id": preview_id})
+        self._record_proposal("issued_approval", preview_id)
         return token
 
     def execute(self, preview_id: str, approval: str | None) -> dict[str, Any]:
@@ -81,8 +114,12 @@ class ActionLoop:
             # An id that propose_update never returned is not written to the audit list.
             raise KeyError(preview_id)
         if approval is None:
-            self._audit.append(
-                {"kind": "denied_without_approval", "preview_id": preview_id}
+            self._record_execute(
+                "denied_without_approval",
+                preview_id,
+                presented=False,
+                accepted=False,
+                reason="no approval presented",
             )
             return {"status": "denied_without_approval"}
         expected = self._approvals.get(preview_id)
@@ -93,22 +130,34 @@ class ActionLoop:
                 approval.encode("utf-8", "surrogatepass"), expected.encode("utf-8")
             )
         ):
-            self._audit.append(
-                {"kind": "denied_untrusted_approval", "preview_id": preview_id}
+            self._record_execute(
+                "denied_untrusted_approval",
+                preview_id,
+                presented=True,
+                accepted=False,
+                reason=(
+                    "no approval issued for this preview"
+                    if expected is None
+                    else "approval does not match the issued token"
+                ),
             )
             raise ApprovalError("untrusted approval")
         spec = self._previews[preview_id]
         if spec != self._approved_specs[preview_id]:
-            self._audit.append(
-                {"kind": "denied_changed_proposal", "preview_id": preview_id}
+            self._record_execute(
+                "denied_changed_proposal",
+                preview_id,
+                presented=True,
+                accepted=False,
+                reason="proposal changed after approval",
             )
             raise ApprovalError("proposal changed after approval")
         if preview_id in self._executed:
-            self._audit.append(
-                {"kind": "duplicate_retry_suppressed", "preview_id": preview_id}
+            self._record_execute(
+                "duplicate_retry_suppressed", preview_id, presented=True, accepted=True
             )
             return {"status": "duplicate_retry_suppressed"}
         self._contacts[spec["query"]].update(spec["patch"])
         self._executed.add(preview_id)
-        self._audit.append({"kind": "execute_once", "preview_id": preview_id})
+        self._record_execute("execute_once", preview_id, presented=True, accepted=True)
         return {"status": "execute_once"}

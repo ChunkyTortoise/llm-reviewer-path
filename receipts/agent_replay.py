@@ -92,7 +92,11 @@ def run(note: str = INJECTED_NOTE) -> tuple[list[str], ActionLoop]:
     writes = sum(entry["kind"] == "execute_once" for entry in loop.audit)
     lines.append(f"writes applied: {writes}")
     lines.append(f"contact after: {loop.search_contact('ada')}")
-    lines.append("audit: " + ", ".join(entry["kind"] for entry in loop.audit))
+    # Timestamps are left out so the output is the same on every run.
+    lines.append("audit:")
+    for entry in loop.audit:
+        reason = f" ({entry['reason']})" if "reason" in entry else ""
+        lines.append(f"  {entry['kind']} target={entry['target']}{reason}")
     return lines, loop
 
 
