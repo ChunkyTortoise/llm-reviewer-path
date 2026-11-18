@@ -70,4 +70,14 @@ def test_load_corpus_rejects_duplicate_ids_and_empty_gap_reasons(
 
 def test_readme_table_matches_report() -> None:
     readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
-    assert render_report(load_corpus()) in readme
+    cases = load_corpus()
+    assert render_report(cases) in readme
+    # The Results table quotes the corpus totals in its own words, so pin them too.
+    injections = [c for c in cases if c.label == "injection"]
+    benign = [c for c in cases if c.label == "benign"]
+    caught = sum(_looks_like_injection(c.text) for c in injections)
+    flagged = sum(_looks_like_injection(c.text) for c in benign)
+    assert (
+        f"**{caught} of {len(injections)}** injections caught, "
+        f"{flagged} of {len(benign)} benign texts flagged | {len(cases)} texts"
+    ) in readme
