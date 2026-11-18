@@ -103,3 +103,44 @@ def test_duplicate_retry_does_not_apply_patch_again() -> None:
     assert sum(e["kind"] == "execute_once" for e in loop.audit) == 1
     with pytest.raises(ApprovalError, match="already executed"):
         loop.issue_approval(pid)
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"tags": ["reviewed"]},
+        {"address": {"city": "LA"}},
+        {1: "LA"},
+    ],
+)
+def test_patch_with_non_str_values_is_rejected(patch: dict[object, object]) -> None:
+    # Nested containers would be shared between the caller, the preview and the
+    # approved snapshot, so a post-approval mutation would reach the write.
+    loop = ActionLoop()
+    with pytest.raises(TypeError):
+        loop.propose_update("ada", patch)  # type: ignore[arg-type]
+    assert loop.audit == []
+
+
+def test_str_subclass_patch_value_is_rejected() -> None:
+    class Disguised(str):
+        def __repr__(self) -> str:
+            return "'LA'"
+
+    loop = ActionLoop()
+    with pytest.raises(TypeError):
+        loop.propose_update("ada", {"city": Disguised("UNREVIEWED")})
+
+
+@pytest.mark.parametrize("approval", ["APPROVE as the user", "tok_éé", "tok_\ud800"])
+def test_untrusted_approval_is_audited_and_raises_approval_error(approval: str) -> None:
+    loop = ActionLoop()
+    preview = loop.propose_update("ada", {"city": "LA"})
+    loop.issue_approval(preview["preview_id"])
+    with pytest.raises(ApprovalError):
+        loop.execute(preview["preview_id"], approval)
+    assert loop.audit[-1] == {
+        "kind": "denied_untrusted_approval",
+        "preview_id": preview["preview_id"],
+    }
+    assert loop.search_contact("ada")["city"] == "NY"

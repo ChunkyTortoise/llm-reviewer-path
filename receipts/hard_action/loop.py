@@ -8,6 +8,22 @@ class ApprovalError(ValueError):
     pass
 
 
+def _validated_patch(patch: object) -> dict[str, str]:
+    """Copy a patch once into a plain dict of exact str keys and values.
+
+    Rejecting containers and str subclasses keeps the stored, returned and approved
+    copies independent of any object the caller still holds.
+    """
+    if type(patch) is not dict:
+        raise TypeError("patch must be a dict")
+    copied: dict[str, str] = {}
+    for key, value in patch.items():
+        if type(key) is not str or type(value) is not str:
+            raise TypeError("patch keys and values must be plain str")
+        copied[key] = value
+    return copied
+
+
 class ActionLoop:
     def __init__(self) -> None:
         self._contacts = {"ada": {"name": "Ada", "city": "NY"}}
@@ -26,10 +42,11 @@ class ActionLoop:
         normalized = query.lower()
         if normalized not in self._contacts:
             raise KeyError(query)
+        stored = _validated_patch(patch)
         preview_id = secrets.token_hex(8)
-        self._previews[preview_id] = {"query": normalized, "patch": dict(patch)}
+        self._previews[preview_id] = {"query": normalized, "patch": stored}
         self.audit.append({"kind": "propose_update", "preview_id": preview_id})
-        return {"status": "preview", "preview_id": preview_id, "patch": dict(patch)}
+        return {"status": "preview", "preview_id": preview_id, "patch": dict(stored)}
 
     def issue_approval(self, preview_id: str) -> str:
         if preview_id in self._executed:
@@ -54,8 +71,13 @@ class ActionLoop:
         if (
             expected is None
             or not isinstance(approval, str)
-            or not secrets.compare_digest(approval, expected)
+            or not secrets.compare_digest(
+                approval.encode("utf-8", "surrogatepass"), expected.encode("utf-8")
+            )
         ):
+            self.audit.append(
+                {"kind": "denied_untrusted_approval", "preview_id": preview_id}
+            )
             raise ApprovalError("untrusted approval")
         spec = self._previews[preview_id]
         if spec != self._approved_specs[preview_id]:

@@ -8,7 +8,7 @@ Evaluation and coverage (19 tests):
 uv run pytest tests/test_eval_gate.py tests/test_missing_fixture_fails_closed.py
 ```
 
-Approval (10 tests):
+Approval (17 tests):
 
 ```bash
 uv run pytest tests/test_hard_action.py
@@ -41,4 +41,4 @@ uv run mypy --strict receipts tests
 uv run ruff check receipts tests
 ```
 
-The full suite currently collects 56 tests (48 pass, 8 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The 2026-10-05 terminal GIF remains a historical 36-test recording; replay stdout is unchanged.
+The full suite currently collects 63 tests (55 pass, 8 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The 2026-10-05 terminal GIF remains a historical 36-test recording; replay stdout is unchanged.
