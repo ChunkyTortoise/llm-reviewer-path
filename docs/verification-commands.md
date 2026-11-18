@@ -27,6 +27,13 @@ uv run pytest tests/test_injection_corpus.py
 uv run python -m receipts.retrieval_failure_modes.injection_corpus
 ```
 
+Scripted agent replay (12 tests):
+
+```bash
+uv run pytest tests/test_agent_replay.py
+uv run python -m receipts.agent_replay
+```
+
 Receipt and README checks (4 tests):
 
 ```bash
@@ -41,4 +48,4 @@ uv run mypy --strict receipts tests
 uv run ruff check receipts tests
 ```
 
-The full suite currently collects 90 tests (69 pass, 21 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The terminal GIF was re-recorded on 2026-11-17 and shows the same 69 passed, 21 xfailed.
+The full suite currently collects 102 tests (81 pass, 21 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The terminal GIF was re-recorded on 2026-11-17 and shows the same 81 passed, 21 xfailed.
