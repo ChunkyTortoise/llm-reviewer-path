@@ -11,15 +11,10 @@ Set PlaybackSpeed 1.0
 Set WaitTimeout 120s
 
 Hide
-Type "export PS1='> '; clear"
+Type "export PS1='> ' UV_NO_CONFIG=1; clear"
 Enter
 Wait+Line /^> ?$/
 Show
-
-Type "uv sync --group dev"
-Enter
-Wait+Line /^> ?$/
-Sleep 2s
 
 Type "uv run pytest"
 Enter
