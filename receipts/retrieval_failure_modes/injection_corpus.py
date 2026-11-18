@@ -11,6 +11,8 @@ from pathlib import Path
 
 from receipts.retrieval_failure_modes.retriever import _looks_like_injection
 
+LABELS = frozenset({"injection", "benign"})
+
 CORPUS_PATH = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "injection_corpus.json"
 
 
@@ -25,9 +27,13 @@ class CorpusCase:
 
 def load_corpus(path: Path = CORPUS_PATH) -> list[CorpusCase]:
     rows = json.loads(path.read_text(encoding="utf-8"))
-    return [
+    cases = [
         CorpusCase(r["id"], r["technique"], r["label"], r["text"], r["detector_gap"]) for r in rows
     ]
+    for c in cases:
+        if c.label not in LABELS:
+            raise ValueError(f"{c.case_id}: unknown label {c.label!r}")
+    return cases
 
 
 def render_report(cases: list[CorpusCase]) -> str:

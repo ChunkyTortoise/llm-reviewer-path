@@ -20,6 +20,13 @@ Retrieval (9 tests):
 uv run pytest tests/test_retrieval_failure_modes.py
 ```
 
+Injection corpus (14 tests, 8 of them strict xfail for known detector gaps):
+
+```bash
+uv run pytest tests/test_injection_corpus.py
+uv run python -m receipts.retrieval_failure_modes.injection_corpus
+```
+
 Receipt and README checks (4 tests):
 
 ```bash
@@ -34,4 +41,4 @@ uv run mypy --strict receipts tests
 uv run ruff check receipts tests
 ```
 
-The full suite currently collects 55 tests. Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The 2026-10-05 terminal GIF remains a historical 36-test recording; replay stdout is unchanged.
+The full suite currently collects 56 tests (48 pass, 8 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The 2026-10-05 terminal GIF remains a historical 36-test recording; replay stdout is unchanged.

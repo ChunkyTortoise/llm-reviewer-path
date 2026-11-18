@@ -19,7 +19,7 @@
 | Measured | Correct label set vs. mutated label set (injection case marked clean), scored against the classifier | **1.00 pass / 0.80 fail** | [`offline-receipt.md#L16-L17`](docs/offline-receipt.md#L16-L17) · [`test_eval_gate.py`](tests/test_eval_gate.py) |
 | Measured | Writes applied when an approved write is retried with the same token | **1** (retry returns `duplicate_retry_suppressed`) | [`test_hard_action.py#L94-L103`](tests/test_hard_action.py#L94-L103) |
 | Inventory | Failure-mode fixtures: empty retrieval, conflicting evidence, prompt injection, malformed structured output, clean | **5** | [`cases.py#L11-L29`](receipts/retrieval_failure_modes/cases.py#L11-L29) |
-| CI gate | Offline tests, run by CI on every push and pull request | **55** | [`ci.yml`](.github/workflows/ci.yml) · [`tests/`](tests/) · [`offline-receipt.md#L27`](docs/offline-receipt.md#L27) |
+| CI gate | Offline tests, run by CI on every push and pull request (8 are strict `xfail` detector gaps) | **56** | [`ci.yml`](.github/workflows/ci.yml) · [`tests/`](tests/) · [`offline-receipt.md#L27`](docs/offline-receipt.md#L27) |
 
 This table is the one place each number is stated. The scope of each one is in [Methodology & limits](#methodology--limits).
 
@@ -66,7 +66,7 @@ read after: {'ok': True, 'name': 'Ada', 'city': 'LA'}
 <p align="center">
   <img src="./docs/assets/terminal-demo.gif" width="720" alt="Terminal capture: uv sync --group dev, uv run pytest reporting 36 passed, and uv run python -m receipts printing GOOD score=1.00 gate=True, MUTATION score=0.80 gate=False, then the approval sequence: denied_without_approval, ApprovalError untrusted approval, execute_once, duplicate_retry_suppressed." />
 </p>
-<p align="center"><sub>Historical terminal capture, recorded 2026-10-05 with 36 tests. The current suite has 55 tests; replay output is unchanged (<a href="docs/demo.tape">vhs tape</a> re-renders the current commands; <a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
+<p align="center"><sub>Historical terminal capture, recorded 2026-10-05 with 36 tests. The current suite has 56 tests; replay output is unchanged (<a href="docs/demo.tape">vhs tape</a> re-renders the current commands; <a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
 
 Then read the code in this order:
 
@@ -129,6 +129,7 @@ flowchart LR
 | **Fail-closed coverage** | Every single omission, empty or partial label sets, unknown IDs, and malformed external reports are rejected before or at the gate | `uv run pytest tests/test_missing_fixture_fails_closed.py` |
 | **Approval boundary** | Denial, model-text rejection, copied patches, changed-proposal rejection, one execution, duplicate suppression, re-approval rejection | `uv run pytest tests/test_hard_action.py` |
 | **Failure-mode fixtures** | Mock `classify()` on each fixture (including JSON-object parsing), no network | `uv run pytest tests/test_retrieval_failure_modes.py` |
+| **Injection corpus** | Real detector on 11 labeled texts; the 8 known gaps are strict `xfail`, and the README table below must equal the generated report | `uv run pytest tests/test_injection_corpus.py` |
 | **Replay & README invariants** | Replay must equal both documented blocks without tokens. Markdown and HTML link targets, heading anchors and line bounds are checked. Mermaid receives structural smoke checks, not syntax validation. | `uv run pytest tests/test_replay.py` |
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs locked development dependencies, then runs strict mypy, Ruff and pytest on every push and pull request. Per-module commands are in [docs/verification-commands.md](docs/verification-commands.md).
