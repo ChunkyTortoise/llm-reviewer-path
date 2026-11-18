@@ -41,4 +41,4 @@ uv run mypy --strict receipts tests
 uv run ruff check receipts tests
 ```
 
-The full suite currently collects 64 tests (56 pass, 8 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The 2026-10-05 terminal GIF remains a historical 36-test recording; replay stdout is unchanged.
+The full suite currently collects 64 tests (56 pass, 8 strict xfail). Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The terminal GIF was re-recorded on 2026-11-17 and shows the same 56 passed, 8 xfailed.
