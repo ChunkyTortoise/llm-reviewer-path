@@ -30,9 +30,17 @@ def load_corpus(path: Path = CORPUS_PATH) -> list[CorpusCase]:
     cases = [
         CorpusCase(r["id"], r["technique"], r["label"], r["text"], r["detector_gap"]) for r in rows
     ]
+    seen: set[str] = set()
     for c in cases:
         if c.label not in LABELS:
             raise ValueError(f"{c.case_id}: unknown label {c.label!r}")
+        if c.case_id in seen:
+            raise ValueError(f"{c.case_id}: duplicate case id")
+        seen.add(c.case_id)
+        if c.detector_gap is not None and not (
+            isinstance(c.detector_gap, str) and c.detector_gap.strip()
+        ):
+            raise ValueError(f"{c.case_id}: detector_gap must be null or a non-empty reason")
     return cases
 
 

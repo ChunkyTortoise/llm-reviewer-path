@@ -24,7 +24,7 @@ def test_detector_matches_label(case: CorpusCase) -> None:
 
 def test_corpus_shape() -> None:
     cases = load_corpus()
-    assert 8 <= len(cases) <= 12
+    assert len(cases) >= 20
     assert len({c.case_id for c in cases}) == len(cases)
     assert {c.label for c in cases} == {"injection", "benign"}
 
@@ -36,6 +36,35 @@ def test_load_corpus_rejects_unknown_label(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="unknown label"):
+        load_corpus(bad)
+
+
+@pytest.mark.parametrize(
+    ("rows", "message"),
+    [
+        (
+            '[{"id": "x", "technique": "t", "label": "benign", "text": "", "detector_gap": null},'
+            ' {"id": "x", "technique": "t", "label": "benign", "text": "", "detector_gap": null}]',
+            "duplicate case id",
+        ),
+        (
+            '[{"id": "x", "technique": "t", "label": "injection", "text": "", "detector_gap": ""}]',
+            "detector_gap",
+        ),
+        (
+            '[{"id": "x", "technique": "t", "label": "benign", "text": "", "detector_gap": true}]',
+            "detector_gap",
+        ),
+    ],
+)
+def test_load_corpus_rejects_duplicate_ids_and_empty_gap_reasons(
+    tmp_path: Path, rows: str, message: str
+) -> None:
+    # An empty or non-string reason would still mark a case xfail, hiding a miss
+    # with no explanation; a duplicate id would hide a case from the report.
+    bad = tmp_path / "corpus.json"
+    bad.write_text(rows, encoding="utf-8")
+    with pytest.raises(ValueError, match=message):
         load_corpus(bad)
 
 
