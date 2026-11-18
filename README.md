@@ -8,7 +8,7 @@ llm-reviewer-path is a small offline Python sample of three controls around an L
 
 ## Results
 
-Every row was rerun offline on 2026-11-17 at commit `9fa2688` or later. No row uses a language model: the classifier and the injection detector are deterministic string checks.
+Every row was rerun offline on 2026-11-17. No row uses a language model: the classifier and the injection detector are deterministic string checks, and the agent in the replay row is a fixed script.
 
 | Metric | Value | n | Dataset | Model | Baseline | Reproduce |
 |---|---|---|---|---|---|---|
@@ -72,6 +72,7 @@ Then read the code in this order:
 1. **Eval gate:** [`receipts/eval_gate/gate.py`](receipts/eval_gate/gate.py). `GOOD` passes, `MUTATION` fails, incomplete labels raise `CoverageError`, unknown IDs raise `KeyError`.
 2. **Approval-bound write:** [`receipts/hard_action/loop.py`](receipts/hard_action/loop.py). Denied without a token, `ApprovalError` on model text, `execute_once`, then `duplicate_retry_suppressed`.
 3. **Failure-mode fixtures:** [`receipts/retrieval_failure_modes/cases.py`](receipts/retrieval_failure_modes/cases.py) and the mock classifier in [`retriever.py`](receipts/retrieval_failure_modes/retriever.py).
+4. **Scripted agent replay:** [`receipts/agent_replay.py`](receipts/agent_replay.py). An injected note drives a scripted agent into the approval boundary; run it with `uv run python -m receipts.agent_replay`.
 
 ## How it works
 
@@ -106,7 +107,8 @@ sequenceDiagram
 - **Reads are open, writes are previews.** `search_contact` needs no token. `propose_update` validates the target contact and returns a preview that names the target, the patch and a `preview_id`; a preview is not an execution ([`loop.py`](receipts/hard_action/loop.py)).
 - **Only an issued token executes.** `execute` without a token returns `denied_without_approval`. Model-written approval text raises `ApprovalError`. Tokens are compared as UTF-8 bytes with `secrets.compare_digest`, so non-ASCII text also raises `ApprovalError`.
 - **Approval is bound to what was approved.** The token is bound to a snapshot of the target query and patch. A patch must be a plain `dict` of plain `str` keys and values (anything else raises `TypeError`), its keys must be fields the target contact already has (anything else raises `KeyError`), and it is copied once, so neither the caller's dict nor the returned preview shares an object with the stored proposal. If the stored proposal changes after approval, `execute` raises `ApprovalError` before any write.
-- **Retries are idempotent.** A used token cannot run the write again: a second `execute` returns `duplicate_retry_suppressed` and does not reapply the patch, even if the row changed in between. Re-approving an already-executed preview raises `ApprovalError`. Each read, proposal, approval and `execute` outcome, including a rejected approval (`denied_untrusted_approval`), is appended to an audit record. Each entry has the event name, a UTC timestamp from an injectable clock, the target contact, and for proposals and `execute` outcomes the patch, whether an approval was presented and accepted, and a denial reason; approval values are never recorded. Callers read the record as a deep copy (`loop.audit` cannot be cleared, edited or reassigned from outside, though same-process code can still reach the private list). Inputs rejected with `KeyError` or `TypeError` before a preview exists, and `execute` calls with a preview id that was never issued (`KeyError`), are not.
+- **Retries are idempotent.** A used token cannot run the write again: a second `execute` returns `duplicate_retry_suppressed` and does not reapply the patch, even if the row changed in between. Re-approving an already-executed preview raises `ApprovalError`.
+- **Every outcome is audited.** Each read, proposal, approval and `execute` outcome, including a rejected approval (`denied_untrusted_approval`), is appended to an audit record. Each entry has the event name, a UTC timestamp from an injectable clock, the target contact, and for proposals and `execute` outcomes the patch, whether an approval was presented and accepted, and a denial reason; approval values are never recorded. Callers read the record as a deep copy (`loop.audit` cannot be cleared, edited or reassigned from outside, though same-process code can still reach the private list). Inputs rejected with `KeyError` or `TypeError` before a preview exists, and `execute` calls with a preview id that was never issued (`KeyError`), are not.
 - **The eval gate fails closed.** `evaluate()` scores a candidate's labels against a mock `classify()` over the fixed fixtures ([`gate.py`](receipts/eval_gate/gate.py)). `gate()` requires the exact case IDs, the full count, and a numeric score at the floor, including for externally constructed reports.
 
 ## How it's evaluated
@@ -218,7 +220,14 @@ An adversarial pass on 2026-11-17 (probes using only the four public methods, no
 2. **Rejected approvals left no audit entry.** A forged or wrong token raised `ApprovalError` without appending anything, so the README claim that every step is audited was false.
 3. **Non-ASCII approval text raised `TypeError`.** `secrets.compare_digest` refuses non-ASCII `str`, so `"tok_é"` raised the wrong exception. It was still refused, but callers catching `ApprovalError` would miss it.
 
-A second pass the same evening closed two smaller gaps in `338b105`, also with tests: a patch could add a new field such as `is_admin` or overwrite the `ok` key of the read result, and `execute` with a made-up preview id and no token wrote that id into the audit list as a denial. It also added [`test_gate_fails_when_the_classifier_stops_detecting_injection`](tests/test_eval_gate.py), which disables the injection check and asserts the gate closes on the correct label set (score 0.80).
+Later passes the same evening closed four smaller gaps, each with a test:
+
+- A patch could add a new field such as `is_admin` or overwrite the `ok` key of the read result (`338b105`).
+- `execute` with a made-up preview id and no token wrote that id into the audit list as a denial (`338b105`).
+- `loop.audit` was a public list that any caller could clear or edit (`ed11d58`).
+- Audit entries held only an event name and a preview id, with no target, patch, reason or time (`e794b5d`).
+
+The same passes added [`test_gate_fails_when_the_classifier_stops_detecting_injection`](tests/test_eval_gate.py), which disables the injection check and asserts the gate closes on the correct label set (score 0.80).
 
 The injection detector is a known, unfixed failure: it catches 3 of 21 labeled injections and flags 3 of 5 benign texts (table above). It exists to show how gaps are recorded, not as a defense.
 
