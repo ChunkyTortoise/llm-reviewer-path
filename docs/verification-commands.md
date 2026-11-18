@@ -34,4 +34,4 @@ uv run mypy --strict receipts tests
 uv run ruff check receipts tests
 ```
 
-The full suite currently collects 42 tests. Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The 2026-10-05 terminal GIF remains a historical 36-test recording; replay stdout is unchanged.
+The full suite currently collects 55 tests. Mermaid checks cover headers and balanced subgraphs, not rendering or full syntax. The 2026-10-05 terminal GIF remains a historical 36-test recording; replay stdout is unchanged.

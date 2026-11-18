@@ -19,7 +19,7 @@
 | Measured | Correct label set vs. mutated label set (injection case marked clean), scored against the classifier | **1.00 pass / 0.80 fail** | [`offline-receipt.md#L16-L17`](docs/offline-receipt.md#L16-L17) · [`test_eval_gate.py`](tests/test_eval_gate.py) |
 | Measured | Writes applied when an approved write is retried with the same token | **1** (retry returns `duplicate_retry_suppressed`) | [`test_hard_action.py#L94-L103`](tests/test_hard_action.py#L94-L103) |
 | Inventory | Failure-mode fixtures: empty retrieval, conflicting evidence, prompt injection, malformed structured output, clean | **5** | [`cases.py#L11-L29`](receipts/retrieval_failure_modes/cases.py#L11-L29) |
-| CI gate | Offline tests, run by CI on every push and pull request | **42** | [`ci.yml`](.github/workflows/ci.yml) · [`tests/`](tests/) · [`offline-receipt.md#L27`](docs/offline-receipt.md#L27) |
+| CI gate | Offline tests, run by CI on every push and pull request | **55** | [`ci.yml`](.github/workflows/ci.yml) · [`tests/`](tests/) · [`offline-receipt.md#L27`](docs/offline-receipt.md#L27) |
 
 This table is the one place each number is stated. The scope of each one is in [Methodology & limits](#methodology--limits).
 
@@ -66,7 +66,7 @@ read after: {'ok': True, 'name': 'Ada', 'city': 'LA'}
 <p align="center">
   <img src="./docs/assets/terminal-demo.gif" width="720" alt="Terminal capture: uv sync --group dev, uv run pytest reporting 36 passed, and uv run python -m receipts printing GOOD score=1.00 gate=True, MUTATION score=0.80 gate=False, then the approval sequence: denied_without_approval, ApprovalError untrusted approval, execute_once, duplicate_retry_suppressed." />
 </p>
-<p align="center"><sub>Historical terminal capture, recorded 2026-10-05 with 36 tests. The current suite has 42 tests; replay output is unchanged (<a href="docs/demo.tape">vhs tape</a> re-renders the current commands; <a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
+<p align="center"><sub>Historical terminal capture, recorded 2026-10-05 with 36 tests. The current suite has 55 tests; replay output is unchanged (<a href="docs/demo.tape">vhs tape</a> re-renders the current commands; <a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
 
 Then read the code in this order:
 
@@ -132,6 +132,26 @@ flowchart LR
 | **Replay & README invariants** | Replay must equal both documented blocks without tokens. Markdown and HTML link targets, heading anchors and line bounds are checked. Mermaid receives structural smoke checks, not syntax validation. | `uv run pytest tests/test_replay.py` |
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs locked development dependencies, then runs strict mypy, Ruff and pytest on every push and pull request. Per-module commands are in [docs/verification-commands.md](docs/verification-commands.md).
+
+### Injection detector corpus
+
+The prompt-injection check in [`retriever.py`](receipts/retrieval_failure_modes/retriever.py) is a two-substring match. [`injection_corpus.json`](tests/fixtures/injection_corpus.json) holds 11 labeled texts, with labels set by what the text is, not by what the detector does. [`test_injection_corpus.py`](tests/test_injection_corpus.py) runs each one through the real detector; known misses are strict `xfail`, so CI stays green, the gap is recorded, and a detector fix fails the build until the case is un-marked. The table below is the output of `uv run python -m receipts.retrieval_failure_modes.injection_corpus`.
+
+| Case | Technique | Label | Detector |
+|---|---|---|---|
+| `direct-prior` | direct phrase (existing substring) | injection | caught |
+| `direct-previous` | direct phrase, mid-sentence | injection | caught |
+| `case-whitespace` | case and whitespace variant | injection | missed |
+| `paraphrase` | paraphrase | injection | missed |
+| `role-spoof` | system-tag and role spoofing | injection | missed |
+| `html-comment` | instruction hidden in an HTML comment | injection | missed |
+| `base64` | base64 obfuscation | injection | missed |
+| `zero-width` | zero-width character obfuscation | injection | missed |
+| `non-english` | non-English phrasing (Spanish) | injection | missed |
+| `benign-security-note` | benign: security note quoting an attack phrase | benign | false positive |
+| `benign-eval-mention` | benign: mentions injection testing | benign | correct (not flagged) |
+
+Caught 2 of 9 injections, 1 false positive.
 
 ## Design decisions
 
