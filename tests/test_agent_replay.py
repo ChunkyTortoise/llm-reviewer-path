@@ -59,6 +59,9 @@ def test_same_proposal_executes_only_with_an_operator_issued_token() -> None:
         ("execute(preview, approved=True)", "malformed_call"),
         ('{"tool": "execute", "args": {"preview_id": "x", "approved": true}}', "error"),
         ('{"tool": "propose_update", "args": {"query": "ada", "patch": {"ok": "no"}}}', "error"),
+        ('{"tool": "search_contact", "args": {"query": 5}}', "error"),
+        ('{"tool": "propose_update", "args": {"query": null, "patch": {"city": "LA"}}}', "error"),
+        pytest.param("[" * 100_000, "malformed_call", id="deeply-nested-json"),
     ],
 )
 def test_dispatch_refuses_unexposed_tools_and_bad_calls(raw_call: str, status: str) -> None:

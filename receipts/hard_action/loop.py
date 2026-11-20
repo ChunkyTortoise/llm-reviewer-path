@@ -71,12 +71,16 @@ class ActionLoop:
         self._record_proposal(kind, preview_id, **fields)
 
     def search_contact(self, query: str) -> dict[str, Any]:
+        if type(query) is not str:
+            raise TypeError("query must be a plain str")
         normalized = query.lower()
         row = self._contacts[normalized]
         self._record("search_contact", target=normalized, query=query)
         return {"ok": True, **row}
 
     def propose_update(self, query: str, patch: dict[str, str]) -> dict[str, Any]:
+        if type(query) is not str:
+            raise TypeError("query must be a plain str")
         normalized = query.lower()
         if normalized not in self._contacts:
             raise KeyError(query)
@@ -157,7 +161,8 @@ class ActionLoop:
                 "duplicate_retry_suppressed", preview_id, presented=True, accepted=True
             )
             return {"status": "duplicate_retry_suppressed"}
+        # Recorded before the write: if the audit entry cannot be made, nothing is written.
+        self._record_execute("execute_once", preview_id, presented=True, accepted=True)
         self._contacts[spec["query"]].update(spec["patch"])
         self._executed.add(preview_id)
-        self._record_execute("execute_once", preview_id, presented=True, accepted=True)
         return {"status": "execute_once"}

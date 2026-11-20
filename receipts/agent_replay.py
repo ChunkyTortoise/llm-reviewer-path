@@ -50,7 +50,9 @@ def dispatch(loop: ActionLoop, raw_call: str) -> dict[str, Any]:
     """Run one model tool call against the loop and return a result the model can read."""
     try:
         call = json.loads(raw_call)
-    except ValueError:
+    except (ValueError, RecursionError):
+        # Deeply nested JSON exhausts the decoder's recursion limit instead of
+        # raising ValueError.
         return {"status": "malformed_call"}
     if not isinstance(call, dict) or not isinstance(call.get("args"), dict):
         return {"status": "malformed_call"}

@@ -17,7 +17,7 @@ Every row was rerun offline on 2026-11-17. No row uses a language model: the cla
 | Patch shapes that could change an approved write, now rejected before preview | **5 of 5** | 5 shapes | [`test_hard_action.py`](tests/test_hard_action.py): nested list, nested dict, non-str key, `str` subclass, stateful `Mapping` | none | Before `5ad8ec1`: nested list and dict values were shallow-copied and a post-approval change reached the write | `uv run pytest tests/test_hard_action.py` |
 | Prompt-injection detector recall | **3 of 21** injections caught, 3 of 5 benign texts flagged | 26 texts | [`injection_corpus.json`](tests/fixtures/injection_corpus.json) | none, two-substring match | First 11 texts alone: 2 of 9 caught, 1 of 2 benign flagged | `uv run python -m receipts.retrieval_failure_modes.injection_corpus` |
 | Writes applied when an injected note drives a scripted agent through the write path | **0** (2 forged approvals denied, `issue_approval` not exposed to the agent) | 5 tool calls | one inline note in [`agent_replay.py`](receipts/agent_replay.py) | none, scripted stand-in that obeys the note | Same proposal with an operator-issued token: 1 write | `uv run python -m receipts.agent_replay` |
-| Offline test suite, run by CI on every push and pull request | **85 pass, 21 strict `xfail`** (the detector misses and false positives) | 106 tests | [`tests/`](tests/) | none | not applicable | `uv run pytest` |
+| Offline test suite, run by CI on every push and pull request | **89 pass, 21 strict `xfail`** (the detector misses and false positives) | 110 tests | [`tests/`](tests/) | none | not applicable | `uv run pytest` |
 
 The scope of each number is in [Methodology & limits](#methodology--limits).
 
@@ -38,7 +38,7 @@ python3 -m venv .venv && .venv/bin/python -m pip install pytest
 .venv/bin/python -m pytest && .venv/bin/python -m receipts
 ```
 
-`pytest` should report 85 passed and 21 xfailed. `python -m receipts` replays the eval scores and the approval sequence; its output must match the block below and in [docs/offline-receipt.md](docs/offline-receipt.md), and a test fails if it drifts.
+`pytest` should report 89 passed and 21 xfailed. `python -m receipts` replays the eval scores and the approval sequence; its output must match the block below and in [docs/offline-receipt.md](docs/offline-receipt.md), and a test fails if it drifts.
 
 <details>
 <summary>Exact output of <code>uv run python -m receipts</code> (verified by <code>test_replay.py</code>)</summary>
@@ -58,7 +58,7 @@ read after: {'ok': True, 'name': 'Ada', 'city': 'LA'}
 </details>
 
 <p align="center">
-  <img src="./docs/assets/terminal-demo.gif" width="720" alt="Terminal capture: uv run pytest reporting 85 passed and 21 xfailed, then uv run python -m receipts printing GOOD score=1.00 gate=True, MUTATION score=0.80 gate=False, then the approval sequence: denied_without_approval, ApprovalError untrusted approval, execute_once, duplicate_retry_suppressed." />
+  <img src="./docs/assets/terminal-demo.gif" width="720" alt="Terminal capture: uv run pytest reporting 89 passed and 21 xfailed, then uv run python -m receipts printing GOOD score=1.00 gate=True, MUTATION score=0.80 gate=False, then the approval sequence: denied_without_approval, ApprovalError untrusted approval, execute_once, duplicate_retry_suppressed." />
 </p>
 <p align="center"><sub>Terminal capture recorded 2026-11-17 with <a href="docs/demo.tape">docs/demo.tape</a> (<a href="docs/offline-receipt.md#visual-asset-provenance">provenance</a>).</sub></p>
 
@@ -227,6 +227,12 @@ Later passes the same evening closed four smaller gaps, each with a test:
 - `loop.audit` was a public list that any caller could clear or edit (`ed11d58`).
 - Audit entries held only an event name and a preview id, with no target, patch, reason or time (`e794b5d`).
 
+A probe of that new code then found three more, also fixed with tests:
+
+- A tool call with a non-string `query` (a number or `null`) raised `AttributeError` out of the replay dispatcher. It now returns an error result.
+- A tool call of 100,000 nested brackets raised `RecursionError` out of the dispatcher. It now returns `malformed_call`.
+- The approved write happened before its `execute_once` audit entry, so a clock that failed at that moment left a write with no entry. The entry is now recorded first.
+
 The same passes added [`test_gate_fails_when_the_classifier_stops_detecting_injection`](tests/test_eval_gate.py), which disables the injection check and asserts the gate closes on the correct label set (score 0.80).
 
 The injection detector is a known, unfixed failure: it catches 3 of 21 labeled injections and flags 3 of 5 benign texts (table above). It exists to show how gaps are recorded, not as a defense.
@@ -276,7 +282,7 @@ Full scope notes are in [Methodology & limits](#methodology--limits).
 
 **Environment**
 - The commands match `pyproject.toml` (`requires-python`, dev group with pytest, mypy and Ruff, `addopts = "-q"`, which hides the platform banner) and CI. `uv.lock` pins development tools; the pip route installs the latest pytest and runs tests only. There is no Makefile.
-- The three Quickstart commands were run on 2026-11-17 in a fresh `git clone` of this branch under `/tmp` with uv 0.11.29 on macOS: `uv run` installed 10 packages, then printed `85 passed, 21 xfailed` and the replay block above. Linux runs in CI only.
+- The three Quickstart commands were run on 2026-11-17 in a fresh `git clone` of this branch under `/tmp` with uv 0.11.29 on macOS: `uv run` installed 10 packages, then printed `85 passed, 21 xfailed` (the suite at that commit; it is now 89 passed) and the replay block above. Linux runs in CI only.
 - The recorded 2026-10-01 verification in [docs/offline-receipt.md](docs/offline-receipt.md) reused an existing environment rather than a fresh `uv sync`; CI exercises the fresh-environment route.
 
 **Field-engineering scope note**

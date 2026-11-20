@@ -320,3 +320,16 @@ def test_changed_proposal_denial_records_the_approved_patch_and_a_reason() -> No
     assert entry["patch"] == {"city": "LA"}
     assert entry["approval_presented"] is True
     assert entry["approval_accepted"] is False
+
+
+def test_failed_audit_write_leaves_the_contact_unchanged() -> None:
+    # The execute_once entry is recorded before the write, so a clock that fails
+    # at that point cannot produce a write with no audit entry.
+    stamps = iter(["t1", "t2"])
+    loop = ActionLoop(clock=lambda: next(stamps))
+    pid = loop.propose_update("ada", {"city": "LA"})["preview_id"]
+    token = loop.issue_approval(pid)
+    with pytest.raises(StopIteration):
+        loop.execute(pid, token)
+    assert loop._contacts["ada"]["city"] == "NY"
+    assert [entry["kind"] for entry in loop.audit] == ["propose_update", "issued_approval"]
