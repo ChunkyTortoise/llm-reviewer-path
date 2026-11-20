@@ -227,7 +227,7 @@ Later passes the same evening closed four smaller gaps, each with a test:
 - `loop.audit` was a public list that any caller could clear or edit (`ed11d58`).
 - Audit entries held only an event name and a preview id, with no target, patch, reason or time (`e794b5d`).
 
-A probe of that new code then found three more, also fixed with tests:
+A probe of that new code then found three more, also fixed with tests (`99d4a76`):
 
 - A tool call with a non-string `query` (a number or `null`) raised `AttributeError` out of the replay dispatcher. It now returns an error result.
 - A tool call of 100,000 nested brackets raised `RecursionError` out of the dispatcher. It now returns `malformed_call`.
