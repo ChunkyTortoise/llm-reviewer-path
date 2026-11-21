@@ -1,0 +1,83 @@
+from pathlib import Path
+
+import pytest
+
+from receipts.retrieval_failure_modes.injection_corpus import (
+    CorpusCase,
+    load_corpus,
+    render_report,
+)
+from receipts.retrieval_failure_modes.retriever import _looks_like_injection
+
+
+def _param(case: CorpusCase) -> object:
+    marks = []
+    if case.detector_gap is not None:
+        marks.append(pytest.mark.xfail(strict=True, reason=case.detector_gap))
+    return pytest.param(case, id=case.case_id, marks=marks)
+
+
+@pytest.mark.parametrize("case", [_param(c) for c in load_corpus()])
+def test_detector_matches_label(case: CorpusCase) -> None:
+    assert _looks_like_injection(case.text) is (case.label == "injection")
+
+
+def test_corpus_shape() -> None:
+    cases = load_corpus()
+    assert len(cases) >= 20
+    assert len({c.case_id for c in cases}) == len(cases)
+    assert {c.label for c in cases} == {"injection", "benign"}
+
+
+def test_load_corpus_rejects_unknown_label(tmp_path: Path) -> None:
+    bad = tmp_path / "corpus.json"
+    bad.write_text(
+        '[{"id": "x", "technique": "t", "label": "injecton", "text": "", "detector_gap": null}]',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="unknown label"):
+        load_corpus(bad)
+
+
+@pytest.mark.parametrize(
+    ("rows", "message"),
+    [
+        (
+            '[{"id": "x", "technique": "t", "label": "benign", "text": "", "detector_gap": null},'
+            ' {"id": "x", "technique": "t", "label": "benign", "text": "", "detector_gap": null}]',
+            "duplicate case id",
+        ),
+        (
+            '[{"id": "x", "technique": "t", "label": "injection", "text": "", "detector_gap": ""}]',
+            "detector_gap",
+        ),
+        (
+            '[{"id": "x", "technique": "t", "label": "benign", "text": "", "detector_gap": true}]',
+            "detector_gap",
+        ),
+    ],
+)
+def test_load_corpus_rejects_duplicate_ids_and_empty_gap_reasons(
+    tmp_path: Path, rows: str, message: str
+) -> None:
+    # An empty or non-string reason would still mark a case xfail, hiding a miss
+    # with no explanation; a duplicate id would hide a case from the report.
+    bad = tmp_path / "corpus.json"
+    bad.write_text(rows, encoding="utf-8")
+    with pytest.raises(ValueError, match=message):
+        load_corpus(bad)
+
+
+def test_readme_table_matches_report() -> None:
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+    cases = load_corpus()
+    assert render_report(cases) in readme
+    # The Results table quotes the corpus totals in its own words, so pin them too.
+    injections = [c for c in cases if c.label == "injection"]
+    benign = [c for c in cases if c.label == "benign"]
+    caught = sum(_looks_like_injection(c.text) for c in injections)
+    flagged = sum(_looks_like_injection(c.text) for c in benign)
+    assert (
+        f"**{caught} of {len(injections)}** injections caught, "
+        f"{flagged} of {len(benign)} benign texts flagged | {len(cases)} texts"
+    ) in readme

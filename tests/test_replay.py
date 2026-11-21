@@ -113,10 +113,10 @@ def test_readme_rejects_broken_links(monkeypatch: pytest.MonkeyPatch) -> None:
     mutations = [
         ('src="./docs/assets/terminal-demo.gif"', 'src="./docs/assets/missing.gif"'),
         ('href="docs/demo.tape"', 'href="docs/missing.tape"'),
-        ('](#results)', '](#missing-heading)'),
-        ('docs/offline-receipt.md#visual-asset-provenance', 'docs/offline-receipt.md#missing'),
-        ('gate.py#L6)', 'gate.py#L9999)'),
-        ('](LICENSE)', '](MISSING-LICENSE)'),
+        ("](#results)", "](#missing-heading)"),
+        ("docs/offline-receipt.md#visual-asset-provenance", "docs/offline-receipt.md#missing"),
+        ("gate.py#L6)", "gate.py#L9999)"),
+        ("](LICENSE)", "](MISSING-LICENSE)"),
     ]
     for before, after in mutations:
         assert before in readme
