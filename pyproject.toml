@@ -14,7 +14,7 @@ build-backend = "hatchling.build"
 packages = ["receipts"]
 
 [dependency-groups]
-dev = ["pytest>=8", "mypy==1.11.2", "ruff==0.15.14"]
+dev = ["pytest>=8", "pytest-cov", "mypy==1.11.2", "ruff==0.15.14"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -28,6 +28,18 @@ packages = ["receipts", "tests"]
 [tool.ruff]
 target-version = "py310"
 line-length = 100
+force-exclude = true
+
+[tool.ruff.format]
+# Test files are left unformatted (commit gate blocks reformatted assertion lines).
+exclude = ["test_*.py", "*_test.py", "*.test.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.coverage.run]
+source = ["receipts"]
+omit = ["tests/*", "*/migrations/*", "*/alembic/*"]
+
+[tool.coverage.report]
+fail_under = 80

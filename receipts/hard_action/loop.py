@@ -46,9 +46,7 @@ class ActionLoop:
 
     def execute(self, preview_id: str, approval: str | None) -> dict[str, Any]:
         if approval is None:
-            self.audit.append(
-                {"kind": "denied_without_approval", "preview_id": preview_id}
-            )
+            self.audit.append({"kind": "denied_without_approval", "preview_id": preview_id})
             return {"status": "denied_without_approval"}
         expected = self._approvals.get(preview_id)
         if (
@@ -59,14 +57,10 @@ class ActionLoop:
             raise ApprovalError("untrusted approval")
         spec = self._previews[preview_id]
         if spec != self._approved_specs[preview_id]:
-            self.audit.append(
-                {"kind": "denied_changed_proposal", "preview_id": preview_id}
-            )
+            self.audit.append({"kind": "denied_changed_proposal", "preview_id": preview_id})
             raise ApprovalError("proposal changed after approval")
         if preview_id in self._executed:
-            self.audit.append(
-                {"kind": "duplicate_retry_suppressed", "preview_id": preview_id}
-            )
+            self.audit.append({"kind": "duplicate_retry_suppressed", "preview_id": preview_id})
             return {"status": "duplicate_retry_suppressed"}
         self._contacts[spec["query"]].update(spec["patch"])
         self._executed.add(preview_id)
