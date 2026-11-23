@@ -3,3 +3,11 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 dist/
+.coverage
+.coverage.*
+.mypy_cache/
+.ruff_cache/
+node_modules/
+.env
+.env.*
+!.env.example
