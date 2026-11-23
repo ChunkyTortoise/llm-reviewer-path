@@ -6,16 +6,24 @@ llm-reviewer-path is a small offline Python sample of three controls around an L
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+CI runs `mypy --strict`, `ruff check` and `pytest` on every push and pull request. [`tests/test_replay.py`](tests/test_replay.py) asserts the replay output below and every local link in this README.
+
+**What to read**
+
+- Eval gate that fails closed: [`receipts/eval_gate/gate.py`](receipts/eval_gate/gate.py)
+- Approval-bound write and single-apply retry: [`receipts/hard_action/loop.py`](receipts/hard_action/loop.py), tested against adversarial patch shapes in [`tests/test_hard_action.py`](tests/test_hard_action.py)
+- Injection corpus, with every detector miss and false positive kept as a strict `xfail`: [`tests/fixtures/injection_corpus.json`](tests/fixtures/injection_corpus.json) and [`tests/test_injection_corpus.py`](tests/test_injection_corpus.py)
+
 ## Results
 
 Every row was rerun offline on 2026-11-17. No row uses a language model: the classifier and the injection detector are deterministic string checks, and the agent in the replay row is a fixed script.
 
 | Metric | Value | n | Dataset | Model | Baseline | Reproduce |
 |---|---|---|---|---|---|---|
+| Prompt-injection detector recall | **3 of 21** injections caught, 3 of 5 benign texts flagged | 26 texts | [`injection_corpus.json`](tests/fixtures/injection_corpus.json) | none, two-substring match | First 11 texts alone: 2 of 9 caught, 1 of 2 benign flagged | `uv run python -m receipts.retrieval_failure_modes.injection_corpus` |
 | Eval gate score, correct label set (floor [`THRESHOLD`](receipts/eval_gate/gate.py#L6) = 1.00) | **1.00, pass** | 5 cases | [`cases.py#L11-L29`](receipts/retrieval_failure_modes/cases.py#L11-L29) (empty retrieval, conflicting evidence, prompt injection, malformed JSON, clean) | none, mock `classify()` | Mutated label set (injection marked clean): 0.80, fail | `uv run python -m receipts` |
 | Writes applied when an approved write is retried with the same token | **1** (retry returns `duplicate_retry_suppressed`) | 2 `execute` calls | one in-memory contact | none | Call without a token: 0 writes (`denied_without_approval`) | `uv run pytest tests/test_hard_action.py` |
 | Patch shapes that could change an approved write, now rejected before preview | **5 of 5** | 5 shapes | [`test_hard_action.py`](tests/test_hard_action.py): nested list, nested dict, non-str key, `str` subclass, stateful `Mapping` | none | Before `5ad8ec1`: nested list and dict values were shallow-copied and a post-approval change reached the write | `uv run pytest tests/test_hard_action.py` |
-| Prompt-injection detector recall | **3 of 21** injections caught, 3 of 5 benign texts flagged | 26 texts | [`injection_corpus.json`](tests/fixtures/injection_corpus.json) | none, two-substring match | First 11 texts alone: 2 of 9 caught, 1 of 2 benign flagged | `uv run python -m receipts.retrieval_failure_modes.injection_corpus` |
 | Writes applied when an injected note drives a scripted agent through the write path | **0** (2 forged approvals denied, `issue_approval` not exposed to the agent) | 5 tool calls | one inline note in [`agent_replay.py`](receipts/agent_replay.py) | none, scripted stand-in that obeys the note | Same proposal with an operator-issued token: 1 write | `uv run python -m receipts.agent_replay` |
 | Offline test suite, run by CI on every push and pull request | **89 pass, 21 strict `xfail`** (the detector misses and false positives) | 110 tests | [`tests/`](tests/) | none | not applicable | `uv run pytest` |
 
